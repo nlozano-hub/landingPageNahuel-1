@@ -20,6 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
+    // Verificar si el usuario es administrador
+    const user = await User.findOne({ email: session.user.email }).select('role');
+    const isAdmin = user?.role === 'admin';
+
     // Obtener parámetros de consulta
     const { 
       limit = '10', 
@@ -34,7 +38,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const skip = (pageNum - 1) * limitNum;
 
     // Construir filtros
-    const filters: any = { isPublished: true };
+    // Los administradores ven TODOS los informes, usuarios normales solo los publicados
+    const filters: any = {};
+    
+    if (!isAdmin) {
+      filters.isPublished = true;
+    }
     
     if (featured === 'true') {
       filters.isFeature = true;
@@ -48,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       filters.category = category;
     }
 
-    console.log('📊 Obteniendo informes con filtros:', filters);
+    console.log('📊 Obteniendo informes con filtros:', filters, '| Admin:', isAdmin);
 
     // Obtener informes con paginación
     const reports = await Report.find(filters)

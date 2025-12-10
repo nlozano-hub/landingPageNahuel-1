@@ -100,8 +100,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Verificar que el informe esté publicado (solo para GET)
-    if (!report.isPublished) {
+    // Verificar que el informe esté publicado (solo para GET y usuarios no admin)
+    const currentUser = await User.findOne({ email: session.user.email }).select('role');
+    const isAdmin = currentUser?.role === 'admin';
+    
+    if (!report.isPublished && !isAdmin) {
       return res.status(403).json({ message: 'Informe no disponible' });
     }
 

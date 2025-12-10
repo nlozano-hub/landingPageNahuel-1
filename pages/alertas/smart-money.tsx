@@ -3529,9 +3529,27 @@ const SubscriberView: React.FC<{ faqs: FAQ[] }> = ({ faqs }) => {
                 const readTime = informe.readTime || 1;
                 
                 return (
-                  <div key={informe.id || informe._id} className={styles.informeCard}>
+                  <div key={informe.id || informe._id} className={styles.informeCard} style={informe.isPublished === false ? { border: '2px solid #ef4444', opacity: 0.85 } : {}}>
                     <div className={styles.informeHeader}>
-                      <h3>{informe.title}</h3>
+                      <h3>
+                        {informe.title}
+                        {/* Badge de "No publicado" solo visible para admins */}
+                        {userRole === 'admin' && informe.isPublished === false && (
+                          <span style={{
+                            marginLeft: '10px',
+                            padding: '2px 8px',
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                            verticalAlign: 'middle'
+                          }}>
+                            ⚠️ OCULTO
+                          </span>
+                        )}
+                      </h3>
                       {/* Información del informe en lista - OCULTA */}
                       <div className={styles.informeMeta} style={{ display: 'none' }}>
                         <span className={styles.informeDate}>
