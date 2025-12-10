@@ -81,7 +81,7 @@ const YouTubeAutoCarousel: React.FC = () => {
       </button>
 
       <div className={styles.youtubeIndicators}>
-        {videos.map((_, index) => (
+        {videos.map((_, index) => ( 
           <button
             key={index}
             onClick={() => setCurrentVideo(index)}
