@@ -81,6 +81,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     if (alertsWithRange.length === 0) {
       console.log(`⚠️ CRON: No hay alertas de rango para convertir`);
+      
+      // ✅ NUEVO: Si no hay alertas, enviar notificación de "sin operaciones"
+      try {
+        console.log(`📧 CRON: No hay alertas - Enviando notificación de "sin operaciones"...`);
+        await enviarNotificacionSinOperaciones();
+        console.log(`✅ CRON: Notificación de "sin operaciones" enviada correctamente`);
+      } catch (err) {
+        console.error('❌ CRON: Error enviando notificación de "sin operaciones":', err);
+        // No fallar el cron si falla el envío de emails
+      }
+      
       return res.status(200).json({
         success: true,
         message: 'OK - No hay alertas para convertir',
@@ -455,15 +466,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     console.log(`🎉 CRON: Conversión automática completada: ${conversionDetails.length} alertas procesadas`);
     console.log(`📧 CRON: ${resumenAcciones.length} acciones para notificar en resumen consolidado`);
 
-    // ✅ CORREGIDO: Enviar resumen ANTES de responder (serverless cierra la función después de res.json)
-    // Como ahora es solo 1 email de resumen (en lugar de 40 individuales), debería ser rápido
+    // ✅ CORREGIDO: Si hay alertas procesadas (aunque sean solo descartadas), enviar resumen normal
+    // Solo enviar "sin operaciones" cuando realmente no hay alertas procesadas
     if (resumenAcciones.length > 0) {
+      // Hay alertas procesadas → enviar resumen (incluye compras/ventas descartadas)
       try {
-        console.log(`📧 CRON: Enviando resumen de operaciones...`);
+        console.log(`📧 CRON: Enviando resumen de operaciones (incluye descartadas)...`);
         await enviarResumenOperaciones(resumenAcciones);
         console.log(`✅ CRON: Resumen de operaciones enviado correctamente`);
       } catch (err) {
         console.error('❌ CRON: Error enviando resumen de operaciones:', err);
+        // No fallar el cron si falla el envío de emails
+      }
+    } else {
+      // No hay alertas procesadas → enviar mensaje de "sin operaciones"
+      try {
+        console.log(`📧 CRON: No hay alertas procesadas - Enviando notificación de "sin operaciones"...`);
+        await enviarNotificacionSinOperaciones();
+        console.log(`✅ CRON: Notificación de "sin operaciones" enviada correctamente`);
+      } catch (err) {
+        console.error('❌ CRON: Error enviando notificación de "sin operaciones":', err);
         // No fallar el cron si falla el envío de emails
       }
     }
@@ -1202,6 +1224,173 @@ function generarEmailResumenHTML(tipoAlerta: string, acciones: AccionResumen[]):
     </body>
     </html>
   `;
+}
+
+/**
+ * ✅ NUEVO: Envía notificación cuando no hay compras ni ventas
+ */
+async function enviarNotificacionSinOperaciones(): Promise<void> {
+  try {
+    console.log(`📧 [SIN OPERACIONES] Iniciando envío de notificación...`);
+    
+    const mensaje = "👋🏻 ¡Buenas a todos! ¿Cómo están? Hoy no tenemos activos para comprar ni para vender. Por lo que mantenemos la cartera tal cual como la tenemos hasta ahora.";
+    
+    // Importar módulos necesarios
+    const { sendEmail } = await import('@/lib/emailService');
+    const User = (await import('@/models/User')).default;
+    const { sendMessageToChannel } = await import('@/lib/telegramBot');
+    
+    // Procesar ambos servicios (TraderCall y SmartMoney)
+    const servicios = ['TraderCall', 'SmartMoney'];
+    
+    for (const tipoAlerta of servicios) {
+      try {
+        // Buscar usuarios suscritos
+        const now = new Date();
+        const subscribedUsers = await User.find({
+          $or: [
+            {
+              'activeSubscriptions': {
+                $elemMatch: {
+                  service: tipoAlerta,
+                  isActive: true,
+                  expiryDate: { $gte: now }
+                }
+              }
+            },
+            {
+              'suscripciones': {
+                $elemMatch: {
+                  servicio: tipoAlerta,
+                  activa: true,
+                  fechaVencimiento: { $gte: now }
+                }
+              }
+            }
+          ]
+        }, 'email name role activeSubscriptions suscripciones').lean();
+        
+        // Filtrar usuarios válidos
+        const validUsers = subscribedUsers.filter(user => {
+          const hasActiveSub = (user as any).activeSubscriptions?.some((sub: any) => 
+            sub.service === tipoAlerta && 
+            sub.isActive === true && 
+            new Date(sub.expiryDate) >= now
+          );
+          
+          const hasLegacySub = (user as any).suscripciones?.some((sub: any) => 
+            sub.servicio === tipoAlerta && 
+            sub.activa === true && 
+            new Date(sub.fechaVencimiento) >= now
+          );
+          
+          return hasActiveSub || hasLegacySub;
+        });
+        
+        console.log(`👥 [SIN OPERACIONES] ${validUsers.length} usuarios válidos para ${tipoAlerta}`);
+        
+        if (validUsers.length === 0) {
+          console.log(`⚠️ [SIN OPERACIONES] No hay usuarios válidos para ${tipoAlerta}, saltando...`);
+          continue;
+        }
+        
+        // ✅ TESTING MODE: Solo enviar emails a administradores si está activado
+        const TESTING_MODE = process.env.EMAIL_TESTING_MODE === 'true';
+        const usersToEmail = TESTING_MODE 
+          ? validUsers.filter((user: any) => user.role === 'admin')
+          : validUsers;
+        
+        if (TESTING_MODE) {
+          console.log(`🧪 [SIN OPERACIONES] MODO TESTING - Solo enviando a ${usersToEmail.length} admins`);
+        }
+        
+        // Enviar a Telegram
+        try {
+          await sendMessageToChannel(tipoAlerta, mensaje);
+          console.log(`✅ [SIN OPERACIONES] Telegram enviado para ${tipoAlerta}`);
+        } catch (telegramError) {
+          console.error(`❌ [SIN OPERACIONES] Error enviando a Telegram:`, telegramError);
+        }
+        
+        // Generar HTML del email
+        const fechaHoy = new Date().toLocaleDateString('es-AR', { 
+          weekday: 'long',
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric' 
+        });
+        
+        const htmlEmail = `
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sin Operaciones - ${tipoAlerta}</title>
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f8fafc;">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); color: white; padding: 30px 25px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
+                👋🏻 Actualización del Día
+              </h1>
+              <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 15px;">
+                ${tipoAlerta} • ${fechaHoy}
+              </p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px 25px; background: white;">
+              <p style="margin: 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                ${mensaje}
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-align: center; padding: 20px 25px; background: #f1f5f9; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">
+                Este es un email automático de <strong>Nahuel Lozano Trading</strong>
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #94a3b8;">
+                Para configurar tus preferencias de notificación, visita tu <a href="/perfil" style="color: #3b82f6;">perfil</a>
+              </p>
+            </div>
+            
+          </body>
+          </html>
+        `;
+        
+        // Enviar emails
+        let emailsSent = 0;
+        for (const user of usersToEmail) {
+          try {
+            await sendEmail({
+              to: (user as any).email,
+              subject: `👋🏻 Actualización ${tipoAlerta} - ${fechaHoy}`,
+              html: htmlEmail
+            });
+            emailsSent++;
+            
+            // Pequeña pausa para evitar rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch (emailError) {
+            console.error(`❌ [SIN OPERACIONES] Error enviando email a ${(user as any).email}:`, emailError);
+          }
+        }
+        
+        console.log(`✅ [SIN OPERACIONES] ${tipoAlerta}: ${emailsSent}/${usersToEmail.length} emails enviados`);
+      } catch (error) {
+        console.error(`❌ [SIN OPERACIONES] Error procesando ${tipoAlerta}:`, error);
+      }
+    }
+    
+    console.log('🎉 [SIN OPERACIONES] Notificación enviada completamente');
+    
+  } catch (error) {
+    console.error('❌ [SIN OPERACIONES] Error general enviando notificación:', error);
+    throw error;
+  }
 }
 
 /**
