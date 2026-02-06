@@ -104,6 +104,23 @@ async function handleCommand(
 
   switch (command) {
     case '/start':
+      // Verificar si el usuario ya tiene Telegram vinculado
+      if (telegramUserId) {
+        await dbConnect();
+        const existingUser = await User.findOne({ telegramUserId });
+        
+        if (existingUser && existingUser.telegramUserId) {
+          // Usuario ya vinculado
+          await bot.sendMessage(
+            chatId,
+            `✅ Ya tenés vinculado tu Telegram.\n\n` +
+            `Usa /help para ver más comandos disponibles.`,
+            { parse_mode: 'Markdown' }
+          );
+          break;
+        }
+      }
+
       // Iniciar flujo de vinculación pidiendo email
       await TelegramConversationState.findOneAndUpdate(
         { telegramUserId },
