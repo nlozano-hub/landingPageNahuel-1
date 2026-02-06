@@ -63,6 +63,17 @@ export default async function handler(
     console.log('⚠️ [TELEGRAM EXPULSION] CRON_SECRET no configurado - acceso sin autenticación');
   }
 
+  // ✅ NUEVO: Modo verbose para ver detalles sin expulsar
+  const verboseMode = req.query.verbose === 'true' || req.body?.verbose === true;
+  const dryRun = req.query.dryRun === 'true' || req.body?.dryRun === true;
+  
+  if (verboseMode) {
+    console.log('📊 [TELEGRAM EXPULSION] Modo verbose activado - se mostrarán detalles de todos los usuarios');
+  }
+  if (dryRun) {
+    console.log('🧪 [TELEGRAM EXPULSION] Modo dry-run activado - NO se expulsará a nadie, solo simulación');
+  }
+
   console.log('🚀 [TELEGRAM EXPULSION] Iniciando cronjob de expulsión...');
 
   try {
@@ -82,11 +93,47 @@ export default async function handler(
     const now = new Date();
     const results: ExpulsionResult[] = [];
 
+    // ✅ OPTIMIZADO: Cachear verificación de permisos del bot por canal al inicio
+    const botPermissions: Record<string, boolean> = {};
+    const botInfo = await bot.getMe();
+    
+    for (const service of ['TraderCall', 'SmartMoney']) {
+      const channelId = CHANNEL_MAP[service];
+      if (channelId) {
+        try {
+          const botMember = await bot.getChatMember(channelId, botInfo.id);
+          if (botMember.status === 'administrator') {
+            const canRestrict = (botMember as any).can_restrict_members === true;
+            botPermissions[service] = canRestrict;
+            console.log(`✅ [TELEGRAM EXPULSION] Bot tiene permisos de administrador en ${service}: ${canRestrict}`);
+          } else {
+            botPermissions[service] = false;
+            console.log(`⚠️ [TELEGRAM EXPULSION] Bot NO es administrador en ${service} (status: ${botMember.status})`);
+          }
+        } catch (permError: any) {
+          botPermissions[service] = false;
+          console.error(`❌ [TELEGRAM EXPULSION] Error verificando permisos del bot en ${service}:`, permError.message);
+        }
+      } else {
+        botPermissions[service] = false;
+      }
+    }
+
+    // ✅ NUEVO: Buscar usuarios CON suscripción activa pero SIN Telegram vinculado (para enviar advertencia)
+    const usersWithoutTelegram = await User.find({
+      $or: [
+        { telegramUserId: { $exists: false } },
+        { telegramUserId: null }
+      ]
+    }).select('email role suscripciones subscriptions activeSubscriptions name');
+
+    console.log(`📊 [TELEGRAM EXPULSION] Encontrados ${usersWithoutTelegram.length} usuarios SIN Telegram vinculado`);
+
     // ✅ CORREGIDO: Buscar TODOS los usuarios con Telegram vinculado
     // No solo los que tienen telegramChannelAccess, porque algunos pueden haberse unido manualmente
     const allUsersWithTelegram = await User.find({
       telegramUserId: { $exists: true, $ne: null }
-    }).select('telegramUserId telegramChannelAccess email role suscripciones subscriptions activeSubscriptions');
+    }).select('telegramUserId telegramChannelAccess email role suscripciones subscriptions activeSubscriptions name');
 
     console.log(`📊 [TELEGRAM EXPULSION] Encontrados ${allUsersWithTelegram.length} usuarios con Telegram vinculado`);
     
@@ -101,17 +148,24 @@ export default async function handler(
     for (const user of allUsersWithTelegram) {
       const servicesToCheck: Array<'TraderCall' | 'SmartMoney'> = [];
       
-      // Si tiene telegramChannelAccess, usar esos servicios
+      // ✅ MEJORADO: Siempre verificar ambos servicios para detectar usuarios que volvieron a entrar
+      // Si tiene telegramChannelAccess, usar esos servicios PERO también verificar el otro servicio
       if (user.telegramChannelAccess && user.telegramChannelAccess.length > 0) {
         user.telegramChannelAccess.forEach((access: any) => {
           if (access.service && !servicesToCheck.includes(access.service)) {
             servicesToCheck.push(access.service);
           }
         });
+        // ✅ NUEVO: También verificar el servicio que NO tiene en DB (puede haber vuelto a entrar)
+        const allServices: Array<'TraderCall' | 'SmartMoney'> = ['TraderCall', 'SmartMoney'];
+        allServices.forEach((service) => {
+          if (!servicesToCheck.includes(service)) {
+            servicesToCheck.push(service);
+          }
+        });
       } else {
         // Si no tiene telegramChannelAccess, verificar ambos servicios
         // (puede haberse unido manualmente al canal)
-        // Nota: Esto se verificará más adelante con la API de Telegram
         servicesToCheck.push('TraderCall', 'SmartMoney');
       }
       
@@ -179,44 +233,62 @@ export default async function handler(
       for (const service of servicesToCheck) {
         const channelId = CHANNEL_MAP[service];
         
-        // ✅ NUEVO: Si el usuario no tiene telegramChannelAccess para este servicio,
-        // verificar si realmente está en el canal usando la API de Telegram
+        // ✅ MEJORADO: SIEMPRE verificar si el usuario está realmente en el canal usando la API de Telegram
+        // Esto detecta usuarios que volvieron a entrar después de ser expulsados
         const hasAccessInDB = user.telegramChannelAccess?.some((a: any) => a.service === service);
+        let isUserInChannel = false;
+        let memberStatus: string | null = null;
         
-        if (!hasAccessInDB && channelId) {
+        // ✅ CRÍTICO: Siempre verificar con la API de Telegram, no confiar solo en DB
+        if (channelId) {
           try {
             const member = await bot.getChatMember(channelId, user.telegramUserId);
-            // Si el usuario NO está en el canal (left o kicked), saltar este servicio
+            memberStatus = member.status;
+            
+            // Verificar si el usuario está realmente en el canal
+            // Status puede ser: 'creator', 'administrator', 'member', 'restricted', 'left', 'kicked'
             if (member.status === 'left' || member.status === 'kicked') {
-              console.log(`   ⚠️ Usuario ${user.email} NO está en canal ${service} (status: ${member.status}) - saltando`);
-              continue;
+              isUserInChannel = false;
+              console.log(`   ⚠️ Usuario ${user.email} NO está en canal ${service} (status: ${member.status})`);
+              
+              // Si tiene acceso en DB pero no está en el canal, limpiar acceso
+              if (hasAccessInDB && user.telegramChannelAccess) {
+                user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                  (a: any) => a.service !== service
+                );
+                console.log(`   🧹 Limpiando acceso en DB para ${user.email} en ${service} (no está en canal)`);
+              }
+              continue; // Saltar este servicio
+            } else {
+              // Usuario está en el canal (member, administrator, creator, restricted, etc.)
+              isUserInChannel = true;
+              
+              if (!hasAccessInDB) {
+                console.log(`   🔍 Usuario ${user.email} está en canal ${service} (status: ${member.status}) pero NO tiene telegramChannelAccess - puede haber vuelto a entrar después de expulsión`);
+              } else {
+                console.log(`   ✅ Usuario ${user.email} está en canal ${service} (status: ${member.status}) y tiene acceso en DB`);
+              }
             }
-            // Si está en el canal, agregar a telegramChannelAccess para futuras verificaciones
-            console.log(`   ✅ Usuario ${user.email} está en canal ${service} (status: ${member.status}) pero no tiene telegramChannelAccess - agregando`);
-            if (!user.telegramChannelAccess) {
-              user.telegramChannelAccess = [];
-            }
-            user.telegramChannelAccess.push({
-              service,
-              channelId,
-              joinedAt: new Date(),
-              inviteLink: undefined
-            });
           } catch (error: any) {
             // ✅ MEJORADO: Manejar diferentes tipos de errores
             if (error.message?.includes('PARTICIPANT_ID_INVALID')) {
               console.log(`   ⚠️ telegramUserId inválido para ${user.email} (${user.telegramUserId}) en ${service} - el usuario puede haber eliminado su cuenta de Telegram`);
             } else if (error.message?.includes('USER_NOT_PARTICIPANT')) {
               console.log(`   ⚠️ Usuario ${user.email} no está en el canal ${service}`);
+              isUserInChannel = false;
             } else {
               console.log(`   ⚠️ No se pudo verificar si ${user.email} está en ${service}: ${error.message}`);
             }
-            // Saltar este servicio para este usuario
-            continue;
+            // Si hay error verificando, asumir que no está en el canal para ser seguro
+            isUserInChannel = false;
+            continue; // Saltar este servicio para este usuario
           }
+        } else {
+          console.log(`   ⚠️ Canal no configurado para ${service}`);
+          continue;
         }
         
-        console.log(`   🔎 Verificando servicio: ${service}`);
+        console.log(`   🔎 Verificando servicio: ${service} - Usuario en canal: ${isUserInChannel}`);
         
         // ✅ CORREGIDO: Verificar suscripción activa en los TRES sistemas (igual que subscriptionAuth.ts)
         // 1. Verificar en suscripciones (array antiguo/legacy)
@@ -271,61 +343,68 @@ export default async function handler(
         
         console.log(`   ✅ Tiene suscripción activa: ${hasActiveSubscription}`);
 
-        // ✅ TEMPORALMENTE COMENTADO PARA TESTEO: Protección de admins deshabilitada
-        // Si no tiene suscripción activa en NINGÚN sistema y no es admin, expulsar
-        // if (!hasActiveSubscription && user.role !== 'admin') {
-        // TEMPORAL: Para testeo, también procesar admins
+        // ✅ NUEVO: En modo verbose, agregar información sobre usuarios con suscripción activa
+        if (verboseMode && hasActiveSubscription) {
+          results.push({
+            userId: user._id.toString(),
+            email: user.email,
+            telegramUserId: user.telegramUserId,
+            service,
+            success: true,
+            error: `Usuario tiene suscripción activa - NO expulsado`
+          });
+        }
+
+        // ✅ CORREGIDO: Si tiene suscripción activa, asegurar que tenga acceso en DB
+        if (hasActiveSubscription && isUserInChannel && !hasAccessInDB) {
+          // Usuario tiene suscripción activa y está en el canal pero no tiene acceso en DB
+          // Agregar acceso para futuras verificaciones
+          console.log(`   ✅ Usuario ${user.email} tiene suscripción activa y está en canal ${service} - agregando acceso en DB`);
+          if (!user.telegramChannelAccess) {
+            user.telegramChannelAccess = [];
+          }
+          user.telegramChannelAccess.push({
+            service,
+            channelId: CHANNEL_MAP[service],
+            joinedAt: new Date(),
+            inviteLink: undefined
+          });
+        }
+        
+        // ✅ CORREGIDO: Si no tiene suscripción activa en NINGÚN sistema, expulsar (incluye admins)
         if (!hasActiveSubscription) {
-          console.log(`   🚨 Usuario ${user.email} NO tiene suscripción activa para ${service} - PROCESANDO EXPULSIÓN`);
-          const channelId = CHANNEL_MAP[service];
+          // Solo expulsar si el usuario está realmente en el canal
+          if (!isUserInChannel) {
+            console.log(`   ℹ️ Usuario ${user.email} no está en canal ${service} - no es necesario expulsar`);
+            // Limpiar acceso en DB si existe
+            if (hasAccessInDB && user.telegramChannelAccess) {
+              user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                (a: any) => a.service !== service
+              );
+              console.log(`   🧹 Limpiando acceso en DB para ${user.email} en ${service}`);
+            }
+            continue;
+          }
           
+          console.log(`   🚨 Usuario ${user.email} NO tiene suscripción activa para ${service} y ESTÁ en el canal (status: ${memberStatus}) - PROCESANDO EXPULSIÓN`);
+          if (user.role === 'admin') {
+            console.log(`   ⚠️ NOTA: Este usuario es ADMIN pero será expulsado por no tener suscripción activa`);
+          }
+          if (!hasAccessInDB) {
+            console.log(`   ⚠️ NOTA: Este usuario volvió a entrar al canal después de ser expulsado - será expulsado nuevamente`);
+          }
+          
+          // channelId ya está definido en línea 198, no es necesario redefinirlo
           if (!channelId) {
             console.log(`⚠️ [TELEGRAM EXPULSION] Canal no configurado para ${service}`);
             continue;
           }
 
           try {
-            // ✅ NUEVO: Verificar que el bot tenga permisos de administrador antes de intentar expulsar
-            let botHasAdminRights = false;
-            try {
-              const botInfo = await bot.getMe();
-              const botMember = await bot.getChatMember(channelId, botInfo.id);
-              
-              console.log(`   🔍 Verificando permisos del bot en ${service}:`);
-              console.log(`      - Bot ID: ${botInfo.id}`);
-              console.log(`      - Bot username: ${botInfo.username}`);
-              console.log(`      - Status en canal: ${botMember.status}`);
-              
-              if (botMember.status === 'administrator') {
-                const canRestrict = (botMember as any).can_restrict_members === true;
-                console.log(`      - can_restrict_members: ${canRestrict}`);
-                botHasAdminRights = canRestrict;
-              } else {
-                console.log(`      - Bot NO es administrador (status: ${botMember.status})`);
-                botHasAdminRights = false;
-              }
-              
-              if (!botHasAdminRights) {
-                const errorMsg = `Bot NO tiene permisos de administrador en ${service} (canal: ${channelId}). El bot debe ser administrador y tener el permiso 'can_restrict_members' habilitado.`;
-                console.error(`❌ [TELEGRAM EXPULSION] ${errorMsg}`);
-                
-                results.push({
-                  userId: user._id.toString(),
-                  email: user.email,
-                  telegramUserId: user.telegramUserId,
-                  service,
-                  success: false,
-                  error: errorMsg
-                });
-                continue;
-              }
-              
-              console.log(`   ✅ Bot tiene permisos de administrador en ${service}`);
-            } catch (permError: any) {
-              console.error(`❌ [TELEGRAM EXPULSION] Error verificando permisos del bot en ${service}:`, permError.message);
-              const errorMsg = permError.message?.includes('CHAT_ADMIN_REQUIRED') 
-                ? `Bot no tiene permisos de administrador en ${service}. Verificar que el bot sea admin del canal.`
-                : `Error verificando permisos: ${permError.message}`;
+            // ✅ OPTIMIZADO: Usar permisos cacheados del bot
+            if (!botPermissions[service]) {
+              const errorMsg = `Bot NO tiene permisos de administrador en ${service} (canal: ${channelId}). El bot debe ser administrador y tener el permiso 'can_restrict_members' habilitado.`;
+              console.error(`❌ [TELEGRAM EXPULSION] ${errorMsg}`);
               
               results.push({
                 userId: user._id.toString(),
@@ -338,56 +417,290 @@ export default async function handler(
               continue;
             }
 
+            // ✅ OPTIMIZADO: Reutilizar memberStatus de la primera verificación si está disponible
+            // Si memberStatus es null, verificar nuevamente
+            let memberStatusBeforeBan: string | null = memberStatus;
+            
+            // Verificar nuevamente solo si memberStatus es null (no se pudo obtener en la primera verificación)
+            if (!memberStatusBeforeBan) {
+              try {
+                const member = await bot.getChatMember(channelId, user.telegramUserId);
+                memberStatusBeforeBan = member.status;
+                console.log(`   📊 Estado actual del usuario en ${service}: ${memberStatusBeforeBan}`);
+              } catch (statusError: any) {
+                // Si no podemos obtener el estado, puede ser que el usuario no esté en el canal
+                if (statusError.message?.includes('USER_NOT_PARTICIPANT') || 
+                    statusError.message?.includes('PARTICIPANT_ID_INVALID')) {
+                  console.log(`   ℹ️ Usuario ${user.email} no está en el canal ${service} - solo limpiando acceso en DB`);
+                  
+                  // Remover el acceso del usuario en la base de datos
+                  if (user.telegramChannelAccess) {
+                    user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                      (a: any) => a.service !== service
+                    );
+                  }
+                  
+                  results.push({
+                    userId: user._id.toString(),
+                    email: user.email,
+                    telegramUserId: user.telegramUserId,
+                    service,
+                    success: true,
+                    error: 'Usuario no está en el canal'
+                  });
+                  continue; // Saltar al siguiente servicio
+                }
+                // Si es otro error, continuar con el intento de expulsión
+                console.log(`   ⚠️ No se pudo verificar estado del usuario, continuando con expulsión: ${statusError.message}`);
+              }
+            }
+            
+            // ✅ Verificar si el usuario es administrador o creador del canal (usando status de primera o segunda verificación)
+            if (memberStatusBeforeBan === 'administrator' || memberStatusBeforeBan === 'creator') {
+              console.log(`   ⚠️ Usuario ${user.email} es ${memberStatusBeforeBan} del canal ${service} - NO se puede expulsar (limitación de Telegram)`);
+              
+              results.push({
+                userId: user._id.toString(),
+                email: user.email,
+                telegramUserId: user.telegramUserId,
+                service,
+                success: false,
+                error: `Usuario es ${memberStatusBeforeBan} del canal - no se puede expulsar (limitación de Telegram API). Debe ser removido manualmente como administrador.`
+              });
+              continue; // Saltar al siguiente servicio
+            }
+            
+            // Si el usuario ya no está en el canal (left, kicked), solo limpiar acceso en DB
+            if (memberStatusBeforeBan === 'left' || memberStatusBeforeBan === 'kicked') {
+              console.log(`   ℹ️ Usuario ${user.email} ya no está en el canal ${service} (status: ${memberStatusBeforeBan}) - solo limpiando acceso en DB`);
+              
+              // Remover el acceso del usuario en la base de datos
+              if (user.telegramChannelAccess) {
+                user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                  (a: any) => a.service !== service
+                );
+              }
+              
+              results.push({
+                userId: user._id.toString(),
+                email: user.email,
+                telegramUserId: user.telegramUserId,
+                service,
+                success: true,
+                error: `Usuario ya estaba fuera del canal (${memberStatusBeforeBan})`
+              });
+              continue; // Saltar al siguiente servicio
+            }
+
             // Expulsar usuario del canal
             // Usamos banChatMember y luego unbanChatMember para permitir reingreso futuro
             console.log(`   🔨 Intentando expulsar usuario ${user.email} (${user.telegramUserId}) del canal ${service}...`);
-            await bot.banChatMember(channelId, user.telegramUserId);
             
-            // Esperar un poco y desbanear para permitir reingreso si renueva
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await bot.unbanChatMember(channelId, user.telegramUserId);
-
-            console.log(`✅ [TELEGRAM EXPULSION] Usuario expulsado: ${user.email} de ${service}`);
-
-            // Remover el acceso del usuario
-            user.telegramChannelAccess = user.telegramChannelAccess.filter(
-              (a: any) => a.service !== service
-            );
-
-            results.push({
-              userId: user._id.toString(),
-              email: user.email,
-              telegramUserId: user.telegramUserId,
-              service,
-              success: true
-            });
-
-            // Notificar al usuario por mensaje directo
+            // ✅ NUEVO: En modo dry-run, no expulsar realmente
+            if (dryRun) {
+              console.log(`   🧪 [DRY-RUN] Simulando expulsión de ${user.email} de ${service} (NO se ejecutó realmente)`);
+              results.push({
+                userId: user._id.toString(),
+                email: user.email,
+                telegramUserId: user.telegramUserId,
+                service,
+                success: true,
+                error: 'DRY-RUN: Simulación completada (no se expulsó realmente)'
+              });
+              continue; // Saltar al siguiente servicio
+            }
+            
             try {
-              await bot.sendMessage(
-                user.telegramUserId,
-                `⚠️ *Suscripción Expirada*\n\n` +
-                `Tu suscripción a *${service}* ha expirado y has sido removido del canal.\n\n` +
-                `Para seguir recibiendo alertas, renueva tu suscripción en:\n` +
-                `🔗 ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}\n\n` +
-                `¡Gracias por ser parte de nuestra comunidad!`,
-                { parse_mode: 'Markdown' }
-              );
-            } catch (msgError) {
-              console.log(`⚠️ [TELEGRAM EXPULSION] No se pudo notificar a ${user.email}`);
+              // Intentar banear al usuario
+              await bot.banChatMember(channelId, user.telegramUserId, {
+                revoke_messages: false // No eliminar mensajes anteriores
+              });
+              
+              console.log(`   ✅ Usuario baneado exitosamente`);
+              
+              // ✅ OPTIMIZADO: Reducir delay a 300ms (suficiente para Telegram procesar)
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              try {
+                await bot.unbanChatMember(channelId, user.telegramUserId, {
+                  only_if_banned: true // Solo desbanear si está baneado
+                });
+                console.log(`   ✅ Usuario desbaneado (puede reingresar si renueva)`);
+              } catch (unbanError: any) {
+                // Si falla el unban, no es crítico - el usuario puede seguir siendo baneado
+                console.log(`   ⚠️ No se pudo desbanear usuario (no crítico): ${unbanError.message}`);
+              }
+
+              console.log(`✅ [TELEGRAM EXPULSION] Usuario expulsado: ${user.email} de ${service}`);
+
+              // Remover el acceso del usuario (importante para detectar si vuelve a entrar)
+              if (user.telegramChannelAccess) {
+                user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                  (a: any) => a.service !== service
+                );
+                console.log(`   🧹 Acceso removido de telegramChannelAccess para ${user.email} en ${service}`);
+              }
+
+              results.push({
+                userId: user._id.toString(),
+                email: user.email,
+                telegramUserId: user.telegramUserId,
+                service,
+                success: true
+              });
+
+              // ✅ MEJORADO: Notificar al usuario por mensaje directo con motivo específico
+              // Usuario tiene Telegram vinculado pero suscripción expirada
+              let telegramNotificationSent = false;
+              try {
+                const serviceName = service === 'TraderCall' ? 'Trader Call' : service === 'SmartMoney' ? 'Smart Money' : service;
+                
+                // Motivo: Suscripción expirada (siempre es este caso porque ya verificamos que no tiene suscripción activa)
+                const motivoMensaje = `Tu suscripción a *${serviceName}* ha *expirado*.`;
+                const solucionMensaje = `Para seguir recibiendo alertas, renueva tu suscripción en:\n` +
+                  `🔗 ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/alertas/${service.toLowerCase().replace('call', 'call')}\n\n` +
+                  `Una vez renovada, recibirás un nuevo link de invitación automáticamente.`;
+                
+                const mensajeCompleto = `⚠️ *Has sido removido del canal de ${serviceName}*\n\n` +
+                  `${motivoMensaje} Por esta razón, has sido removido del canal de Telegram.\n\n` +
+                  `*¿Qué hacer ahora?*\n\n` +
+                  `${solucionMensaje}\n\n` +
+                  `💡 *¿Necesitas ayuda?*\n` +
+                  `Contacta a soporte desde tu perfil o responde a este mensaje.\n\n` +
+                  `¡Gracias por ser parte de nuestra comunidad! 🚀`;
+                
+                await bot.sendMessage(
+                  user.telegramUserId,
+                  mensajeCompleto,
+                  { parse_mode: 'Markdown' }
+                );
+                telegramNotificationSent = true;
+                console.log(`   ✅ Notificación de Telegram enviada a ${user.email} con motivo específico`);
+              } catch (msgError: any) {
+                console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo notificar por Telegram a ${user.email}: ${msgError.message}`);
+                // Enviar email como respaldo
+              }
+              
+              // ✅ NUEVO: Enviar email de notificación explicando la expulsión
+              // Usuario tiene Telegram vinculado pero suscripción expirada
+              try {
+                const { sendEmail } = await import('@/lib/emailService');
+                const serviceName = service === 'TraderCall' ? 'Trader Call' : service === 'SmartMoney' ? 'Smart Money' : service;
+                const renewalUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/alertas/${service.toLowerCase().replace('call', 'call')}`;
+                const profileUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`;
+                
+                // Motivo: Suscripción expirada (siempre es este caso porque ya verificamos que no tiene suscripción activa)
+                const motivoEmail = `Tu suscripción a ${serviceName} ha expirado.`;
+                const solucionEmail = `Para seguir recibiendo alertas, renueva tu suscripción: <br><br><a href="${renewalUrl}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Renovar Suscripción</a><br><br>Una vez renovada, recibirás un nuevo link de invitación automáticamente para volver a unirte al canal de Telegram.`;
+                
+                const emailHtml = `
+                  <!DOCTYPE html>
+                  <html lang="es">
+                  <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Has sido removido del canal de ${serviceName}</title>
+                  </head>
+                  <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f8fafc;">
+                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%); color: white; padding: 30px 25px; text-align: center;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 700;">⚠️ Has sido removido del canal de ${serviceName}</h1>
+                    </div>
+                    <div style="padding: 30px 25px; background: white;">
+                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                        Hola ${user.name || user.email},
+                      </p>
+                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                        <strong>${motivoEmail}</strong> Por esta razón, has sido removido del canal de Telegram de ${serviceName}.
+                      </p>
+                      <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;">
+                          ⚠️ Ya no recibirás alertas de ${serviceName} hasta que renueves tu suscripción.
+                        </p>
+                      </div>
+                      <h2 style="margin: 30px 0 15px 0; font-size: 18px; color: #0f172a;">¿Qué hacer ahora?</h2>
+                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">${solucionEmail}</p>
+                      <p style="margin: 30px 0 0 0; font-size: 14px; color: #64748b;">
+                        💡 ¿Necesitas ayuda?<br>Contacta a soporte desde tu perfil: <a href="${profileUrl}" style="color: #3b82f6;">${profileUrl}</a>
+                      </p>
+                      <p style="margin: 20px 0 0 0; font-size: 14px; color: #64748b;">
+                        ¡Gracias por ser parte de nuestra comunidad! 🚀
+                      </p>
+                    </div>
+                  </body>
+                  </html>
+                `;
+                
+                await sendEmail({
+                  to: user.email,
+                  subject: `⚠️ Has sido removido del canal de ${serviceName}`,
+                  html: emailHtml
+                });
+                
+                console.log(`   ✅ Email de notificación enviado a ${user.email}${telegramNotificationSent ? ' (además del mensaje de Telegram)' : ' (como respaldo, Telegram falló)'}`);
+              } catch (emailError: any) {
+                console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo enviar email a ${user.email}: ${emailError.message}`);
+              }
+            } catch (banError: any) {
+              // ✅ MEJORADO: Manejar error específico de administrador
+              if (banError.message?.includes('user is an administrator') || 
+                  banError.response?.body?.description?.includes('user is an administrator')) {
+                console.log(`   ⚠️ Usuario ${user.email} es administrador del canal ${service} - no se puede expulsar (limitación de Telegram API)`);
+                
+                results.push({
+                  userId: user._id.toString(),
+                  email: user.email,
+                  telegramUserId: user.telegramUserId,
+                  service,
+                  success: false,
+                  error: 'Usuario es administrador del canal - no se puede expulsar automáticamente. Debe ser removido manualmente como administrador desde Telegram.'
+                });
+                continue; // Saltar al siguiente servicio
+              }
+              
+              // Si el ban falla por otro motivo, re-lanzar para que se maneje en el catch externo
+              throw banError;
             }
 
           } catch (error: any) {
             console.error(`❌ [TELEGRAM EXPULSION] Error expulsando ${user.email} de ${service}:`, error.message);
+            console.error(`   Detalles del error:`, {
+              code: error.response?.body?.error_code,
+              description: error.response?.body?.description,
+              parameters: error.response?.body?.parameters
+            });
             
-            // ✅ MEJORADO: Mensajes de error más descriptivos
-            let errorMessage = error.message;
-            if (error.message?.includes('CHAT_ADMIN_REQUIRED')) {
-              errorMessage = `Bot no tiene permisos de administrador en el canal ${service}. Verificar que el bot sea admin y tenga permiso 'can_restrict_members'`;
-            } else if (error.message?.includes('PARTICIPANT_ID_INVALID')) {
+            // ✅ MEJORADO: Mensajes de error más descriptivos y específicos
+            let errorMessage = error.message || 'Error desconocido';
+            let shouldCleanAccess = false; // Si debemos limpiar el acceso en DB aunque falle la expulsión
+            
+            if (error.message?.includes('CHAT_ADMIN_REQUIRED') || 
+                error.response?.body?.error_code === 400) {
+              errorMessage = `Bot no tiene permisos de administrador en el canal ${service}. Verificar que el bot sea admin y tenga permiso 'can_restrict_members' habilitado.`;
+            } else if (error.message?.includes('PARTICIPANT_ID_INVALID') ||
+                       error.response?.body?.error_code === 400) {
               errorMessage = `telegramUserId inválido o usuario no encontrado en el canal: ${user.telegramUserId}`;
-            } else if (error.message?.includes('USER_NOT_PARTICIPANT')) {
+              shouldCleanAccess = true; // Si el ID es inválido, limpiar acceso en DB
+            } else if (error.message?.includes('USER_NOT_PARTICIPANT') ||
+                       error.response?.body?.error_code === 400) {
               errorMessage = `Usuario no está en el canal ${service}`;
+              shouldCleanAccess = true; // Si no está en el canal, limpiar acceso en DB
+            } else if (error.message?.includes('USER_ALREADY_PARTICIPANT')) {
+              // Este error no debería ocurrir, pero si pasa, significa que el usuario sigue en el canal
+              errorMessage = `Usuario sigue en el canal pero no se pudo expulsar. Verificar permisos del bot.`;
+            } else if (error.message?.includes('BOT_NOT_FOUND') || 
+                       error.response?.body?.error_code === 401) {
+              errorMessage = `Bot no encontrado o token inválido. Verificar TELEGRAM_BOT_TOKEN.`;
+            } else if (error.message?.includes('CHAT_NOT_FOUND') ||
+                       error.response?.body?.error_code === 400) {
+              errorMessage = `Canal no encontrado. Verificar que TELEGRAM_CHANNEL_${service.toUpperCase()} esté configurado correctamente.`;
+            }
+            
+            // Si el error indica que el usuario no está en el canal, limpiar acceso en DB
+            if (shouldCleanAccess && user.telegramChannelAccess) {
+              console.log(`   🧹 Limpiando acceso en DB para ${user.email} en ${service}`);
+              user.telegramChannelAccess = user.telegramChannelAccess.filter(
+                (a: any) => a.service !== service
+              );
             }
             
             results.push({
@@ -408,6 +721,135 @@ export default async function handler(
       }
     }
 
+    // ✅ NUEVO: Procesar usuarios SIN Telegram vinculado pero con suscripción activa
+    // Enviar email de advertencia indicando que necesitan vincular Telegram
+    for (const user of usersWithoutTelegram) {
+      // Verificar si tiene suscripción activa en alguno de los servicios
+      const servicesWithActiveSubscription: Array<'TraderCall' | 'SmartMoney'> = [];
+      
+      for (const service of ['TraderCall', 'SmartMoney'] as Array<'TraderCall' | 'SmartMoney'>) {
+        // Verificar suscripción activa en los tres sistemas
+        const suscripcionActiva = user.suscripciones?.find(
+          (sub: any) => {
+            const matchesService = sub.servicio === service;
+            const isActive = sub.activa === true;
+            const fechaVenc = sub.fechaVencimiento ? new Date(sub.fechaVencimiento) : null;
+            const isFuture = fechaVenc ? fechaVenc > now : false;
+            return matchesService && isActive && isFuture;
+          }
+        );
+        
+        const subscriptionActiva = user.subscriptions?.find(
+          (sub: any) => {
+            const matchesService = sub.tipo === service;
+            const isActive = sub.activa === true;
+            const fechaFin = sub.fechaFin ? new Date(sub.fechaFin) : null;
+            const isFuture = fechaFin ? fechaFin > now : (!sub.fechaFin);
+            return matchesService && isActive && isFuture;
+          }
+        );
+        
+        const activeSubscription = user.activeSubscriptions?.find(
+          (sub: any) => {
+            const matchesService = sub.service === service;
+            const isActive = sub.isActive === true;
+            const expiryDate = sub.expiryDate ? new Date(sub.expiryDate) : null;
+            const isFuture = expiryDate ? expiryDate > now : false;
+            return matchesService && isActive && isFuture;
+          }
+        );
+        
+        const hasActiveSubscription = !!(suscripcionActiva || subscriptionActiva || activeSubscription);
+        
+        if (hasActiveSubscription) {
+          servicesWithActiveSubscription.push(service);
+        }
+      }
+      
+      // Si tiene suscripción activa pero no tiene Telegram vinculado, enviar advertencia
+      if (servicesWithActiveSubscription.length > 0) {
+        console.log(`⚠️ [TELEGRAM EXPULSION] Usuario ${user.email} tiene suscripción activa en ${servicesWithActiveSubscription.join(', ')} pero NO tiene Telegram vinculado`);
+        
+        try {
+          const { sendEmail } = await import('@/lib/emailService');
+          const profileUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`;
+          
+          const servicesList = servicesWithActiveSubscription.map(s => 
+            s === 'TraderCall' ? 'Trader Call' : 'Smart Money'
+          ).join(' y ');
+          
+          const emailHtml = `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>⚠️ Acción Requerida: Vincular Telegram</title>
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f8fafc;">
+              <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%); color: white; padding: 30px 25px; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700;">⚠️ Acción Requerida: Vincular Telegram</h1>
+              </div>
+              <div style="padding: 30px 25px; background: white;">
+                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                  Hola ${user.name || user.email},
+                </p>
+                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                  Detectamos que tienes una <strong>suscripción activa</strong> a <strong>${servicesList}</strong>, pero <strong>no tienes tu cuenta de Telegram vinculada</strong>.
+                </p>
+                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                  Para recibir las alertas y mantener tu acceso a los canales de Telegram, necesitas vincular tu cuenta de Telegram.
+                </p>
+                <h2 style="margin: 30px 0 15px 0; font-size: 18px; color: #0f172a;">¿Qué hacer ahora?</h2>
+                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                  <strong>1️⃣ Vincular tu cuenta de Telegram:</strong><br>
+                  <a href="${profileUrl}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">Vincular Telegram desde tu perfil →</a>
+                </p>
+                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
+                  <strong>2️⃣ Una vez vinculado:</strong><br>
+                  Genera un nuevo link de invitación desde tu perfil para unirte a los canales de Telegram.
+                </p>
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 14px; color: #92400e; font-weight: 600;">
+                    ⚠️ Importante: Si no vinculas tu cuenta de Telegram, perderás el acceso a los canales y no recibirás las alertas.
+                  </p>
+                </div>
+                <p style="margin: 30px 0 0 0; font-size: 14px; color: #64748b;">
+                  💡 ¿Necesitas ayuda?<br>Contacta a soporte desde tu perfil: <a href="${profileUrl}" style="color: #3b82f6;">${profileUrl}</a>
+                </p>
+                <p style="margin: 20px 0 0 0; font-size: 14px; color: #64748b;">
+                  ¡Gracias por ser parte de nuestra comunidad! 🚀
+                </p>
+              </div>
+            </body>
+            </html>
+          `;
+          
+          await sendEmail({
+            to: user.email,
+            subject: `⚠️ Acción Requerida: Vincular Telegram para ${servicesList}`,
+            html: emailHtml
+          });
+          
+          console.log(`   ✅ Email de advertencia enviado a ${user.email} (sin Telegram vinculado)`);
+          
+          // Agregar a resultados en modo verbose
+          if (verboseMode) {
+            results.push({
+              userId: user._id.toString(),
+              email: user.email,
+              telegramUserId: 0, // No tiene Telegram vinculado
+              service: servicesWithActiveSubscription.join(', '),
+              success: true,
+              error: `Usuario tiene suscripción activa pero NO tiene Telegram vinculado - Email de advertencia enviado`
+            });
+          }
+        } catch (emailError: any) {
+          console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo enviar email de advertencia a ${user.email}: ${emailError.message}`);
+        }
+      }
+    }
+
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
 
@@ -415,11 +857,15 @@ export default async function handler(
 
     return res.status(200).json({
       success: true,
-      message: `Cronjob de expulsión completado`,
+      message: dryRun 
+        ? `Cronjob de expulsión completado (DRY-RUN - no se expulsó a nadie)` 
+        : `Cronjob de expulsión completado`,
       summary: {
         totalChecked: allUsersWithTelegram.length,
         expelled: successCount,
-        errors: failCount
+        errors: failCount,
+        dryRun: dryRun || false,
+        verbose: verboseMode || false
       },
       results,
       executedAt: now.toISOString()

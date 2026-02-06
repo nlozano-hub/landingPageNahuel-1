@@ -35,7 +35,8 @@ import {
   Loader,
   Percent,
   CheckCircle,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -146,7 +147,8 @@ const useDashboardSections = () => {
       links: [
         { label: 'Lista de Usuarios', href: '/admin/users', icon: <Users size={16} /> },
         { label: 'Usuarios Activos', href: '/admin/users/active', icon: <UserCheck size={16} /> },
-        { label: 'Gestión de Roles', href: '/admin/users/roles', icon: <Settings size={16} /> }
+        { label: 'Gestión de Roles', href: '/admin/users/roles', icon: <Settings size={16} /> },
+        { label: 'Expulsiones Telegram', href: '/admin/telegram-expulsion', icon: <Shield size={16} /> }
       ]
     },
     {
