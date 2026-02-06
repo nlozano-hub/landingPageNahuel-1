@@ -397,18 +397,19 @@ const NonSubscriberView: React.FC<{
                 {isSubscriptionBlocked && (
                   <div style={{
                     padding: '16px',
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fca5a5',
+                    backgroundColor: '#dc2626',
+                    border: '2px solid #991b1b',
                     borderRadius: '8px',
-                    color: '#991b1b',
+                    color: '#ffffff',
                     textAlign: 'center',
-                    marginTop: '16px'
+                    marginTop: '16px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                   }}>
-                    <AlertTriangle size={20} style={{ marginBottom: '8px' }} />
-                    <p style={{ margin: 0, fontWeight: 'bold' }}>
+                    <AlertTriangle size={20} style={{ marginBottom: '8px', color: '#ffffff' }} />
+                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem', color: '#ffffff' }}>
                       Tu cuenta no puede contratar servicios
                     </p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.875rem', color: '#fef2f2' }}>
                       Contacta al soporte para más información
                     </p>
                   </div>
@@ -603,18 +604,19 @@ const NonSubscriberView: React.FC<{
               {isSubscriptionBlocked && (
                 <div style={{
                   padding: '16px',
-                  backgroundColor: '#fee2e2',
-                  border: '1px solid #fca5a5',
+                  backgroundColor: '#dc2626',
+                  border: '2px solid #991b1b',
                   borderRadius: '8px',
-                  color: '#991b1b',
+                  color: '#ffffff',
                   textAlign: 'center',
-                  marginTop: '16px'
+                  marginTop: '16px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                 }}>
-                  <AlertTriangle size={20} style={{ marginBottom: '8px' }} />
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>
+                  <AlertTriangle size={20} style={{ marginBottom: '8px', color: '#ffffff' }} />
+                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1rem', color: '#ffffff' }}>
                     Tu cuenta no puede contratar servicios
                   </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '0.875rem', color: '#fef2f2' }}>
                     Contacta al soporte para más información
                   </p>
                 </div>
