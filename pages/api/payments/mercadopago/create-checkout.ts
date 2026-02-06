@@ -12,6 +12,7 @@ import {
 import Pricing from '@/models/Pricing';
 import Training from '@/models/Training';
 import { z } from 'zod';
+import { isUserBlocked } from '@/lib/subscriptionBlockService';
 
 // Schema de validación
 const checkoutSchema = z.object({
@@ -58,6 +59,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ 
         success: false,
         error: 'Usuario no encontrado' 
+      });
+    }
+
+    // ✅ Verificar si el usuario está bloqueado para suscripciones
+    const blocked = await isUserBlocked(user);
+    if (blocked) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Tu cuenta no puede contratar servicios. Contacta al soporte para más información.' 
       });
     }
 

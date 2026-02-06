@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Obtener usuarios con paginación
         const users = await User.find(query)
-          .select('name email picture role createdAt lastLogin isActive subscriptions activeSubscriptions')
+          .select('name email picture role createdAt lastLogin isActive subscriptionBlocked subscriptionBlockedAt subscriptionBlockedReason subscriptions activeSubscriptions')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(Number(limit));
@@ -120,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             createdAt: user.createdAt,
             lastLogin: user.lastLogin,
             isActive: user.isActive !== false, // Por defecto true si no existe
+            subscriptionBlocked: user.subscriptionBlocked === true, // Por defecto false si no existe
             subscriptions: allSubscriptions, // ✅ Array combinado
             ingresoMensual
           };

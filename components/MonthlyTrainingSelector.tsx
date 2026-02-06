@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, CheckCircle, AlertCircle, Users, UserX } from 'lucide-react';
+import { useSubscriptionBlock } from '@/hooks/useSubscriptionBlock';
 import styles from '../styles/MonthlyTrainingSelector.module.css';
 
 interface AvailabilityData {
@@ -29,6 +30,7 @@ const MonthlyTrainingSelector: React.FC<MonthlyTrainingSelectorProps> = ({
   disabled = false,
   onSubscribe
 }) => {
+  const { isBlocked: isSubscriptionBlocked } = useSubscriptionBlock();
   const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,11 +214,31 @@ const MonthlyTrainingSelector: React.FC<MonthlyTrainingSelectorProps> = ({
       {selectedMonth && selectedYear && onSubscribe && (
         <button
           onClick={() => onSubscribe(selectedMonth, selectedYear)}
-          disabled={disabled}
+          disabled={disabled || isSubscriptionBlocked}
           className={styles.subscribeButton}
         >
           Suscribirse al Mes &gt;
         </button>
+      )}
+      {isSubscriptionBlocked && (
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fca5a5',
+          borderRadius: '8px',
+          color: '#991b1b',
+          textAlign: 'center',
+          marginTop: '16px',
+          fontSize: '0.875rem'
+        }}>
+          <AlertCircle size={16} style={{ marginBottom: '4px' }} />
+          <p style={{ margin: 0, fontWeight: 'bold' }}>
+            Tu cuenta no puede contratar servicios
+          </p>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem' }}>
+            Contacta al soporte para más información
+          </p>
+        </div>
       )}
     </div>
   );

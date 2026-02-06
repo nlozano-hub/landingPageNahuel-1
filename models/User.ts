@@ -83,6 +83,10 @@ export interface IUser extends Document {
     joinedAt: Date;
     inviteLink?: string;
   }>;
+  // Campos para bloqueo de suscripciones
+  subscriptionBlocked?: boolean;
+  subscriptionBlockedAt?: Date;
+  subscriptionBlockedReason?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -316,7 +320,18 @@ const UserSchema: Schema = new Schema({
     inviteLink: {
       type: String
     }
-  }]
+  }],
+  // Campos para bloqueo de suscripciones
+  subscriptionBlocked: {
+    type: Boolean,
+    default: false
+  },
+  subscriptionBlockedAt: {
+    type: Date
+  },
+  subscriptionBlockedReason: {
+    type: String
+  }
 }, {
   timestamps: true
 });

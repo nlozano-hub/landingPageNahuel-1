@@ -68,6 +68,7 @@ import SPY500Indicator from '@/components/SPY500Indicator';
 import PortfolioTimeRange from '@/components/PortfolioTimeRange';
 import { usePricing } from '@/hooks/usePricing';
 import { useSecurityProtection } from '@/hooks/useSecurityProtection';
+import { useSubscriptionBlock } from '@/hooks/useSubscriptionBlock';
 import OperationsTable from '@/components/OperationsTable';
 import { toast } from 'react-hot-toast';
 import TrialUsedModal from '@/components/TrialUsedModal';
@@ -155,6 +156,7 @@ const NonSubscriberView: React.FC<{
 }) => {
   const { data: session } = useSession();
   const { pricing, loading: pricingLoading } = usePricing();
+  const { isBlocked: isSubscriptionBlocked } = useSubscriptionBlock();
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProcessingTrial, setIsProcessingTrial] = useState(false);
@@ -188,6 +190,11 @@ const NonSubscriberView: React.FC<{
   const handleTrial = async () => {
     if (!session) {
       signIn('google', { callbackUrl: window.location.href });
+      return;
+    }
+
+    if (isSubscriptionBlocked) {
+      toast.error('Tu cuenta no puede contratar servicios. Contacta al soporte para más información.');
       return;
     }
 
@@ -230,6 +237,11 @@ const NonSubscriberView: React.FC<{
   const handleSubscribe = async () => {
     if (!session) {
       signIn('google', { callbackUrl: window.location.href });
+      return;
+    }
+
+    if (isSubscriptionBlocked) {
+      toast.error('Tu cuenta no puede contratar servicios. Contacta al soporte para más información.');
       return;
     }
 
@@ -386,7 +398,7 @@ const NonSubscriberView: React.FC<{
               </p>
               <div className={styles.heroFeatures}>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  {!hasUsedTrial && (
+                  {!hasUsedTrial && !isSubscriptionBlocked && (
                     <button 
                       className={styles.heroFeature}
                       onClick={handleTrial}
@@ -411,24 +423,45 @@ const NonSubscriberView: React.FC<{
                       )}
                     </button>
                   )}
-                <button 
-                  className={styles.heroFeature}
-                  onClick={handleSubscribe}
-                  disabled={isProcessing}
-                    style={{ flex: '1', minWidth: '200px' }}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader size={20} />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={20} />
-                        <span>Suscribirme</span>
-                    </>
-                  )}
-                </button>
+                {!isSubscriptionBlocked && (
+                  <button 
+                    className={styles.heroFeature}
+                    onClick={handleSubscribe}
+                    disabled={isProcessing}
+                      style={{ flex: '1', minWidth: '200px' }}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader size={20} />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={20} />
+                          <span>Suscribirme</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                {isSubscriptionBlocked && (
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#fee2e2',
+                    border: '1px solid #fca5a5',
+                    borderRadius: '8px',
+                    color: '#991b1b',
+                    textAlign: 'center',
+                    marginTop: '16px'
+                  }}>
+                    <AlertTriangle size={20} style={{ marginBottom: '8px' }} />
+                    <p style={{ margin: 0, fontWeight: 'bold' }}>
+                      Tu cuenta no puede contratar servicios
+                    </p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+                      Contacta al soporte para más información
+                    </p>
+                  </div>
+                )}
                 </div>
                 {!hasUsedTrial && (
                   <p style={{
@@ -576,7 +609,7 @@ const NonSubscriberView: React.FC<{
                 Únete a nuestra comunidad y comienza construir tu libertad financiera
               </p>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                {!hasUsedTrial && (
+                  {!hasUsedTrial && !isSubscriptionBlocked && (
                   <button 
                     className={styles.finalCtaButton}
                     onClick={handleTrial}
@@ -597,23 +630,44 @@ const NonSubscriberView: React.FC<{
                     )}
                   </button>
                 )}
-              <button 
-                className={styles.finalCtaButton}
-                onClick={handleSubscribe}
-                disabled={isProcessing}
-                  style={{ minWidth: '200px' }}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader size={16} className={styles.spinner} />
-                    Procesando...
-                  </>
-                ) : session ? (
-                    'Suscribirme >'
-                ) : (
-                  'Iniciar Sesión y Suscribirme >'
-                )}
-              </button>
+              {!isSubscriptionBlocked && (
+                <button 
+                  className={styles.finalCtaButton}
+                  onClick={handleSubscribe}
+                  disabled={isProcessing}
+                    style={{ minWidth: '200px' }}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader size={16} className={styles.spinner} />
+                      Procesando...
+                    </>
+                  ) : session ? (
+                      'Suscribirme >'
+                  ) : (
+                    'Iniciar Sesión y Suscribirme >'
+                  )}
+                </button>
+              )}
+              {isSubscriptionBlocked && (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '8px',
+                  color: '#991b1b',
+                  textAlign: 'center',
+                  marginTop: '16px'
+                }}>
+                  <AlertTriangle size={20} style={{ marginBottom: '8px' }} />
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>
+                    Tu cuenta no puede contratar servicios
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+                    Contacta al soporte para más información
+                  </p>
+                </div>
+              )}
               </div>
               {!hasUsedTrial && (
                 <p style={{

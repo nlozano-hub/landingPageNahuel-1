@@ -11,6 +11,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useUserSubscriptions, UserSubscription, PaymentHistory } from '@/hooks/useUserSubscriptions';
+import { useSubscriptionBlock } from '@/hooks/useSubscriptionBlock';
 import styles from '@/styles/UserSubscriptions.module.css';
 
 const getServiceDisplayName = (service: string) => {
@@ -89,6 +90,7 @@ const getDaysUntilExpiry = (expiryDate: string) => {
 };
 
 export default function UserSubscriptions() {
+  const { isBlocked: isSubscriptionBlocked } = useSubscriptionBlock();
   const { 
     subscriptions, 
     paymentHistory, 
@@ -261,13 +263,15 @@ export default function UserSubscriptions() {
                       )}
 
                       {/* Botón de renovar */}
-                      <button
-                        onClick={() => handleRenewSubscription(subscription.service)}
-                        className={styles.renewButton}
-                      >
-                        <RefreshCw size={16} />
-                        Renovar Ahora
-                      </button>
+                      {!isSubscriptionBlocked && (
+                        <button
+                          onClick={() => handleRenewSubscription(subscription.service)}
+                          className={styles.renewButton}
+                        >
+                          <RefreshCw size={16} />
+                          Renovar Ahora
+                        </button>
+                      )}
                       
                       {isExpiringSoon && (
                         <p className={styles.renewTip}>
@@ -341,13 +345,15 @@ export default function UserSubscriptions() {
                       </div>
 
                       {/* Botón de renovar para suscripciones expiradas */}
-                      <button
-                        onClick={() => handleRenewSubscription(subscription.service)}
-                        className={styles.renewButtonExpired}
-                      >
-                        <RefreshCw size={16} />
-                        Renovar Suscripción
-                      </button>
+                      {!isSubscriptionBlocked && (
+                        <button
+                          onClick={() => handleRenewSubscription(subscription.service)}
+                          className={styles.renewButtonExpired}
+                        >
+                          <RefreshCw size={16} />
+                          Renovar Suscripción
+                        </button>
+                      )}
                       
                       <p className={styles.renewTip}>
                         💡 Renová ahora para recuperar el acceso a {getServiceDisplayName(subscription.service)}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, AlertTriangle, CheckCircle, RefreshCw, X } from 'lucide-react';
+import { useSubscriptionBlock } from '@/hooks/useSubscriptionBlock';
 import styles from '@/styles/SubscriptionBanner.module.css';
 
 interface SubscriptionBannerProps {
@@ -14,6 +15,7 @@ interface SubscriptionInfo {
 }
 
 export default function SubscriptionBanner({ service }: SubscriptionBannerProps) {
+  const { isBlocked: isSubscriptionBlocked } = useSubscriptionBlock();
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -157,7 +159,7 @@ export default function SubscriptionBanner({ service }: SubscriptionBannerProps)
             )}
           </div>
 
-          {(isExpiringSoon || isExpired) && (
+          {(isExpiringSoon || isExpired) && !isSubscriptionBlocked && (
             <button
               onClick={handleRenew}
               className={styles.renewButton}

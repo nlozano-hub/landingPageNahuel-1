@@ -6,6 +6,7 @@ import User from '@/models/User';
 import Payment from '@/models/Payment';
 import Pricing from '@/models/Pricing';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
+import { isUserBlocked } from '@/lib/subscriptionBlockService';
 
 /**
  * API para crear checkout de renovación de suscripción en MercadoPago
@@ -35,6 +36,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // ✅ Verificar si el usuario está bloqueado para suscripciones
+    const blocked = await isUserBlocked(user);
+    if (blocked) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Tu cuenta no puede contratar servicios. Contacta al soporte para más información.' 
+      });
     }
 
     // Verificar si tiene suscripción activa (para confirmación)

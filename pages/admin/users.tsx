@@ -45,6 +45,7 @@ interface UserData {
   createdAt: string;
   lastLogin?: string;
   isActive: boolean;
+  subscriptionBlocked?: boolean;
   subscriptions?: Array<{
     tipo: string;
     precio: number;
@@ -323,6 +324,63 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
     } catch (error) {
       console.error('Error al eliminar usuario:', error);
       toast.error('Error al eliminar usuario');
+    }
+  };
+
+  // Bloquear suscripciones de usuario
+  const blockUserSubscriptions = async (userId: string) => {
+    const reason = prompt('Ingresa el motivo del bloqueo (opcional):');
+    if (reason === null) return; // Usuario canceló
+
+    try {
+      const response = await fetch('/api/admin/users/block-subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, reason: reason || undefined }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message || 'Usuario bloqueado correctamente');
+        fetchUsers(currentPage);
+        fetchSubscriptionStats();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Error al bloquear usuario');
+      }
+    } catch (error) {
+      console.error('Error al bloquear usuario:', error);
+      toast.error('Error al bloquear usuario');
+    }
+  };
+
+  // Desbloquear suscripciones de usuario
+  const unblockUserSubscriptions = async (userId: string) => {
+    if (!confirm('¿Estás seguro de que quieres desbloquear las suscripciones de este usuario?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/users/unblock-subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        toast.success('Usuario desbloqueado correctamente');
+        fetchUsers(currentPage);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Error al desbloquear usuario');
+      }
+    } catch (error) {
+      console.error('Error al desbloquear usuario:', error);
+      toast.error('Error al desbloquear usuario');
     }
   };
 
@@ -622,6 +680,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                     <div className={styles.tableCell}>Usuario</div>
                     <div className={styles.tableCell}>Rol</div>
                     <div className={styles.tableCell}>Suscripciones</div>
+                    <div className={styles.tableCell}>Estado</div>
                     <div className={styles.tableCell}>Ingresos</div>
                     <div className={styles.tableCell}>Último Login</div>
                     <div className={styles.tableCell}>Acciones</div>
@@ -686,16 +745,44 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                           ) : (
                             <span className={styles.noSubscriptions}>Sin suscripciones</span>
                           )}
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowSubscriptionModal(true);
-                            }}
-                            className={styles.addSubButton}
-                          >
-                            <Plus size={14} />
-                          </button>
+                          {!user.subscriptionBlocked && (
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowSubscriptionModal(true);
+                              }}
+                              className={styles.addSubButton}
+                            >
+                              <Plus size={14} />
+                            </button>
+                          )}
                         </div>
+                      </div>
+                      
+                      <div className={styles.tableCell}>
+                        {user.subscriptionBlocked ? (
+                          <span className={styles.blockedBadge} style={{ 
+                            backgroundColor: '#ef4444', 
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}>
+                            Bloqueado
+                          </span>
+                        ) : (
+                          <span className={styles.activeBadge} style={{ 
+                            backgroundColor: '#10b981', 
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}>
+                            Activo
+                          </span>
+                        )}
                       </div>
                       
                       <div className={styles.tableCell}>
@@ -725,6 +812,27 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                           >
                             <Eye size={16} />
                           </button>
+                          {user.subscriptionBlocked ? (
+                            <button
+                              onClick={() => unblockUserSubscriptions(user._id)}
+                              className={`${styles.actionBtn}`}
+                              style={{ backgroundColor: '#10b981', color: 'white' }}
+                              title="Desbloquear suscripciones"
+                              disabled={user.role === 'admin'}
+                            >
+                              <Check size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => blockUserSubscriptions(user._id)}
+                              className={`${styles.actionBtn}`}
+                              style={{ backgroundColor: '#ef4444', color: 'white' }}
+                              title="Bloquear suscripciones"
+                              disabled={user.role === 'admin'}
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
                           <button
                             onClick={() => deleteUser(user._id)}
                             className={`${styles.actionBtn} ${styles.danger}`}
