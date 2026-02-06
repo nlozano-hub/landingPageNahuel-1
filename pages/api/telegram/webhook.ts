@@ -135,6 +135,14 @@ async function handleCommand(
       await handleGruposCommand(bot, chatId, telegramUserId);
       break;
 
+    case '/vencimiento':
+      if (!telegramUserId) {
+        await bot.sendMessage(chatId, `❌ No se pudo identificar tu usuario de Telegram.`);
+        break;
+      }
+      await handleVencimientoCommand(bot, chatId, telegramUserId);
+      break;
+
     case '/help':
       await bot.sendMessage(
         chatId,
@@ -142,6 +150,7 @@ async function handleCommand(
         `📋 *Comandos disponibles:*\n\n` +
         `🔗 /start - Iniciar vinculación de cuenta (te pedirá tu email)\n` +
         `👥 /grupos - Ver grupos disponibles según tus suscripciones\n` +
+        `⏰ /vencimiento - Ver estado y renovar tus suscripciones\n` +
         `ℹ️ /help - Mostrar esta ayuda\n\n` +
         `*¿Cómo vincular mi cuenta?*\n\n` +
         `1️⃣ Escribe /start\n\n` +
@@ -588,10 +597,25 @@ async function handleGruposCommand(
       (sub: any) => sub.isActive && new Date(sub.expiryDate) > new Date()
     ) || [];
 
-    // Si es admin, mostrar todos los grupos
-    const servicesToShow = user.role === 'admin' 
-      ? Object.keys(SERVICES_MAP)
-      : activeSubscriptions.map((sub: any) => sub.service).filter((s: string) => SERVICES_MAP[s]);
+    console.log(`🔍 [TELEGRAM /grupos] Usuario: ${user.email}`);
+    console.log(`🔍 [TELEGRAM /grupos] Total activeSubscriptions:`, user.activeSubscriptions?.length || 0);
+    console.log(`🔍 [TELEGRAM /grupos] Suscripciones activas encontradas:`, activeSubscriptions.map((s: any) => ({ service: s.service, expiryDate: s.expiryDate, isActive: s.isActive })));
+
+    // Mapear servicios de suscripciones activas (solo los que tienen suscripción activa)
+    const servicesFromSubs = activeSubscriptions.map((sub: any) => sub.service);
+    console.log(`🔍 [TELEGRAM /grupos] Servicios de suscripciones activas:`, servicesFromSubs);
+    
+    // Filtrar solo los que existen en SERVICES_MAP y eliminar duplicados
+    const uniqueServices = Array.from(new Set<string>(servicesFromSubs));
+    const servicesToShow = uniqueServices.filter((s: string) => {
+      const exists = SERVICES_MAP[s] !== undefined;
+      if (!exists) {
+        console.log(`⚠️ [TELEGRAM /grupos] Servicio ${s} NO existe en SERVICES_MAP`);
+      }
+      return exists;
+    });
+    
+    console.log(`🔍 [TELEGRAM /grupos] Servicios finales a mostrar (sin duplicados):`, servicesToShow);
 
     if (servicesToShow.length === 0) {
       await bot.sendMessage(
@@ -707,6 +731,116 @@ async function handleGruposCommand(
     await bot.sendMessage(
       chatId,
       `❌ Ocurrió un error al obtener los grupos. Por favor, intenta nuevamente más tarde o contacta al soporte.`
+    );
+  }
+}
+
+/**
+ * Maneja el comando /vencimiento - muestra suscripciones activas y links de renovación
+ */
+async function handleVencimientoCommand(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUserId: number
+) {
+  try {
+    await dbConnect();
+
+    // Buscar usuario por telegramUserId
+    const user = await User.findOne({ telegramUserId });
+    
+    if (!user) {
+      await bot.sendMessage(
+        chatId,
+        `❌ No tienes tu cuenta vinculada.\n\n` +
+        `Escribe /start para vincular tu cuenta primero.`
+      );
+      return;
+    }
+
+    // Obtener suscripciones activas
+    const activeSubscriptions = user.activeSubscriptions?.filter(
+      (sub: any) => sub.isActive && new Date(sub.expiryDate) > new Date()
+    ) || [];
+
+    if (activeSubscriptions.length === 0) {
+      await bot.sendMessage(
+        chatId,
+        `📭 *No tienes suscripciones activas*\n\n` +
+        `No hay suscripciones activas en tu cuenta.\n\n` +
+        `Para suscribirte, visita:\n` +
+        `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/alertas`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    // Mapeo de servicios a nombres
+    const SERVICE_NAMES: Record<string, { name: string; emoji: string }> = {
+      'TraderCall': { name: 'Trader Call', emoji: '📈' },
+      'SmartMoney': { name: 'Smart Money', emoji: '💰' },
+      'CashFlow': { name: 'Cash Flow', emoji: '💵' }
+    };
+
+    let message = `⏰ *Estado de tus Suscripciones*\n\n`;
+
+    // Procesar cada suscripción activa
+    for (const sub of activeSubscriptions) {
+      const serviceInfo = SERVICE_NAMES[sub.service] || { name: sub.service, emoji: '📋' };
+      const expiryDate = new Date(sub.expiryDate);
+      const now = new Date();
+      const diffTime = expiryDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Formatear tiempo restante
+      let timeRemaining = '';
+      if (diffDays < 0) {
+        timeRemaining = '⚠️ *Expirada*';
+      } else if (diffDays === 0) {
+        timeRemaining = '⚠️ *Expira hoy*';
+      } else if (diffDays === 1) {
+        timeRemaining = '⚠️ *Expira mañana*';
+      } else if (diffDays <= 7) {
+        timeRemaining = `⚠️ *Expira en ${diffDays} días*`;
+      } else {
+        const weeks = Math.floor(diffDays / 7);
+        const days = diffDays % 7;
+        if (weeks > 0 && days > 0) {
+          timeRemaining = `✅ *${weeks} semana${weeks > 1 ? 's' : ''} y ${days} día${days > 1 ? 's' : ''} restantes*`;
+        } else if (weeks > 0) {
+          timeRemaining = `✅ *${weeks} semana${weeks > 1 ? 's' : ''} restantes*`;
+        } else {
+          timeRemaining = `✅ *${diffDays} días restantes*`;
+        }
+      }
+
+      message += `${serviceInfo.emoji} *${serviceInfo.name}*\n`;
+      message += `   ${timeRemaining}\n`;
+      message += `   📅 Vence: ${expiryDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}\n`;
+      
+      // Generar link de renovación
+      const renewalUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/api/payments/mercadopago/create-renewal-checkout-telegram?service=${sub.service}&telegramUserId=${telegramUserId}`;
+      message += `   🔗 [Renovar suscripción](${renewalUrl})\n\n`;
+    }
+
+    message += `💡 *Importante:*\n`;
+    message += `• Los links de renovación te llevarán a MercadoPago\n`;
+    message += `• Al renovar, se agregará 1 mes más a tu suscripción actual\n`;
+    message += `• Si tu suscripción ya expiró, se creará una nueva desde hoy`;
+
+    await bot.sendMessage(
+      chatId,
+      message,
+      { parse_mode: 'Markdown', disable_web_page_preview: false }
+    );
+
+    console.log(`✅ [TELEGRAM /vencimiento] Estado mostrado para ${user.email} (${activeSubscriptions.length} suscripciones)`);
+
+  } catch (error: any) {
+    console.error('❌ [TELEGRAM WEBHOOK] Error en comando /vencimiento:', error);
+    await bot.sendMessage(
+      chatId,
+      `❌ Ocurrió un error al obtener el estado de tus suscripciones. Por favor, intenta nuevamente más tarde o contacta al soporte.`
     );
   }
 }
