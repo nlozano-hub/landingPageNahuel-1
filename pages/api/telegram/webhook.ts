@@ -3,6 +3,8 @@ import TelegramBot from 'node-telegram-bot-api';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import TelegramLinkCode from '@/models/TelegramLinkCode';
+import TelegramConversationState from '@/models/TelegramConversationState';
+import { sendEmail } from '@/lib/emailService';
 
 /**
  * Webhook para recibir mensajes del bot de Telegram
@@ -50,12 +52,31 @@ export default async function handler(
 
     console.log(`📨 [TELEGRAM WEBHOOK] Mensaje recibido de ${telegramUsername || telegramUserId}: ${text}`);
 
+    // Verificar si hay un estado de conversación activo
+    const conversationState = await TelegramConversationState.findOne({
+      telegramUserId,
+      expiresAt: { $gt: new Date() }
+    });
+
     // Procesar comandos
     if (text.startsWith('/')) {
+      // Limpiar estado de conversación si hay comando
+      if (conversationState) {
+        await TelegramConversationState.deleteOne({ telegramUserId });
+      }
       await handleCommand(bot, chatId, telegramUserId, telegramUsername, text, botUsername);
     } else {
-      // Procesar como código de vinculación o mensaje normal
-      await handleMessage(bot, chatId, telegramUserId, telegramUsername, text, botUsername);
+      // Si hay estado de conversación, procesar según el estado
+      if (conversationState) {
+        if (conversationState.state === 'waiting_email') {
+          await handleEmailInput(bot, chatId, telegramUserId, telegramUsername, text, botUsername);
+        } else if (conversationState.state === 'waiting_code') {
+          await handleLinkCode(bot, chatId, telegramUserId, telegramUsername, text, conversationState);
+        }
+      } else {
+        // Procesar como código de vinculación o mensaje normal
+        await handleMessage(bot, chatId, telegramUserId, telegramUsername, text, botUsername);
+      }
     }
 
     // Responder a Telegram que recibimos el mensaje
@@ -83,20 +104,42 @@ async function handleCommand(
 
   switch (command) {
     case '/start':
+      // Iniciar flujo de vinculación pidiendo email
+      await TelegramConversationState.findOneAndUpdate(
+        { telegramUserId },
+        {
+          telegramUserId,
+          state: 'waiting_email',
+          createdAt: new Date(),
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutos
+        },
+        { upsert: true, new: true }
+      );
+
+      await bot.sendMessage(
+        chatId,
+        `👋 ¡Hola! Soy el bot de Lozano Nahuel.\n\n` +
+        `🔗 Para vincular tu cuenta de Telegram, necesito tu email.\n\n` +
+        `📧 *Por favor, envía tu email de registro:*\n\n` +
+        `Ejemplo: \`usuario@ejemplo.com\`\n\n` +
+        `Una vez que lo envíes, te mandaré un código por email para completar la vinculación.`,
+        { parse_mode: 'Markdown' }
+      );
+      break;
+
     case '/help':
       await bot.sendMessage(
         chatId,
         `👋 ¡Hola! Soy el bot de Lozano Nahuel.\n\n` +
         `📋 *Comandos disponibles:*\n\n` +
-        `🔗 /link - Vincular tu cuenta de Telegram con tu cuenta web\n` +
+        `🔗 /start - Iniciar vinculación de cuenta (te pedirá tu email)\n` +
         `ℹ️ /help - Mostrar esta ayuda\n\n` +
         `*¿Cómo vincular mi cuenta?*\n\n` +
-        `1️⃣ Ve a tu perfil en la web:\n` +
-        `   ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil\n\n` +
-        `2️⃣ Haz clic en "Generar Código de Vinculación"\n\n` +
-        `3️⃣ Envíame el código de 6 dígitos aquí y te vincularé automáticamente\n\n` +
-        `💡 También puedes enviarme directamente el código de 6 dígitos que generaste.\n\n` +
-        `Ejemplo: \`123456\``,
+        `1️⃣ Escribe /start\n\n` +
+        `2️⃣ Envía tu email de registro\n\n` +
+        `3️⃣ Recibirás un código por email\n\n` +
+        `4️⃣ Envía el código aquí y te vincularé automáticamente\n\n` +
+        `💡 También puedes generar un código desde tu perfil en la web si prefieres.`,
         { parse_mode: 'Markdown' }
       );
       break;
@@ -121,6 +164,229 @@ async function handleCommand(
         chatId,
         `❓ Comando no reconocido. Usa /help para ver los comandos disponibles.`
       );
+  }
+}
+
+/**
+ * Maneja la entrada de email del usuario
+ */
+async function handleEmailInput(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUserId: number | undefined,
+  telegramUsername: string | undefined,
+  text: string,
+  botUsername?: string
+) {
+  if (!telegramUserId) {
+    await bot.sendMessage(chatId, `❌ No se pudo identificar tu usuario de Telegram.`);
+    return;
+  }
+
+  // Validar formato de email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const email = text.trim().toLowerCase();
+
+  if (!emailRegex.test(email)) {
+    await bot.sendMessage(
+      chatId,
+      `❌ Email inválido. Por favor, envía un email válido.\n\n` +
+      `Ejemplo: \`usuario@ejemplo.com\``,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  try {
+    // Buscar usuario por email
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      await bot.sendMessage(
+        chatId,
+        `❌ No encontramos una cuenta con ese email.\n\n` +
+        `Verifica que el email sea correcto o crea una cuenta en:\n` +
+        `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}\n\n` +
+        `Si crees que es un error, contacta al soporte.`
+      );
+      // Limpiar estado
+      await TelegramConversationState.deleteOne({ telegramUserId });
+      return;
+    }
+
+    // Verificar si el usuario ya tiene Telegram vinculado
+    if (user.telegramUserId && user.telegramUserId !== telegramUserId) {
+      await bot.sendMessage(
+        chatId,
+        `⚠️ Esta cuenta ya tiene otro Telegram vinculado.\n\n` +
+        `Si necesitas cambiar la vinculación, desvincula primero desde tu perfil:\n` +
+        `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`
+      );
+      await TelegramConversationState.deleteOne({ telegramUserId });
+      return;
+    }
+
+    // Verificar si este Telegram ya está vinculado a otra cuenta
+    const existingUser = await User.findOne({
+      telegramUserId,
+      _id: { $ne: user._id }
+    });
+
+    if (existingUser) {
+      await bot.sendMessage(
+        chatId,
+        `⚠️ Este Telegram ya está vinculado a otra cuenta (${existingUser.email}).\n\n` +
+        `Si crees que es un error, contacta al soporte.`
+      );
+      await TelegramConversationState.deleteOne({ telegramUserId });
+      return;
+    }
+
+    // Generar código único de 6 dígitos
+    let code: string = '';
+    let codeExists = true;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (codeExists && attempts < maxAttempts) {
+      code = Math.floor(100000 + Math.random() * 900000).toString();
+      const existing = await TelegramLinkCode.findOne({ code, used: false });
+      codeExists = !!existing;
+      attempts++;
+    }
+
+    if (attempts >= maxAttempts || !code) {
+      await bot.sendMessage(
+        chatId,
+        `❌ Error generando código. Por favor, intenta nuevamente con /start`
+      );
+      await TelegramConversationState.deleteOne({ telegramUserId });
+      return;
+    }
+
+    // Crear código de vinculación (expira en 15 minutos)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    // Invalidar códigos anteriores no usados del mismo usuario
+    await TelegramLinkCode.updateMany(
+      { userId: user._id, used: false },
+      { used: true, usedAt: new Date() }
+    );
+
+    const linkCode = new TelegramLinkCode({
+      code,
+      userId: user._id,
+      email: user.email,
+      expiresAt
+    });
+
+    await linkCode.save();
+
+    // Obtener información del bot para incluir en el email
+    let botUsernameForEmail = botUsername || 'lozanoNahuel_bot';
+
+    // Enviar email con el código
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #0088cc 0%, #0066aa 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .code-box { background: white; border: 3px solid #10B981; border-radius: 12px; padding: 30px; text-align: center; margin: 20px 0; }
+          .code { font-size: 36px; font-weight: bold; color: #10B981; letter-spacing: 8px; font-family: 'Courier New', monospace; }
+          .instructions { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .instructions ol { margin: 10px 0; padding-left: 20px; }
+          .instructions li { margin: 10px 0; }
+          .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+          .warning { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔗 Código de Vinculación de Telegram</h1>
+          </div>
+          <div class="content">
+            <p>Hola ${user.fullName || user.email},</p>
+            
+            <p>Has solicitado vincular tu cuenta de Telegram desde el bot. Aquí está tu código de vinculación:</p>
+            
+            <div class="code-box">
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">Tu código de vinculación es:</p>
+              <div class="code">${code}</div>
+              <p style="margin: 10px 0 0 0; color: #666; font-size: 12px;">⏰ Expira en 15 minutos</p>
+            </div>
+            
+            <div class="instructions">
+              <h3 style="margin-top: 0;">📱 Pasos para vincular:</h3>
+              <ol>
+                <li>Vuelve al chat del bot de Telegram</li>
+                <li>Envía el código: <strong style="color: #10B981; font-size: 18px;">${code}</strong></li>
+                <li>El bot te confirmará cuando tu cuenta esté vinculada</li>
+              </ol>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Importante:</strong> Este código expira en 15 minutos. Si no lo usas, deberás solicitar uno nuevo con /start.
+            </div>
+            
+            <p style="margin-top: 30px;">
+              Si no solicitaste este código, puedes ignorar este email de forma segura.
+            </p>
+          </div>
+          <div class="footer">
+            <p>Este es un email automático, por favor no respondas.</p>
+            <p>&copy; ${new Date().getFullYear()} Lozano Nahuel - Todos los derechos reservados</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      subject: '🔗 Código de Vinculación de Telegram',
+      html: emailHtml
+    });
+
+    // Actualizar estado de conversación para esperar el código
+    await TelegramConversationState.findOneAndUpdate(
+      { telegramUserId },
+      {
+        state: 'waiting_code',
+        email: user.email,
+        userId: user._id,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutos
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ [TELEGRAM LINK] Código enviado por email a ${user.email} para ${telegramUserId}: ${code}`);
+
+    await bot.sendMessage(
+      chatId,
+      `✅ *Email verificado*\n\n` +
+      `📧 Hemos enviado un código de vinculación a:\n` +
+      `\`${user.email}\`\n\n` +
+      `📱 *Próximo paso:*\n` +
+      `Revisa tu email y envía el código de 6 dígitos aquí.\n\n` +
+      `⏱️ El código expira en 15 minutos.\n\n` +
+      `Ejemplo: \`123456\``,
+      { parse_mode: 'Markdown' }
+    );
+
+  } catch (error: any) {
+    console.error('❌ [TELEGRAM WEBHOOK] Error procesando email:', error);
+    await bot.sendMessage(
+      chatId,
+      `❌ Ocurrió un error al procesar tu email. Por favor, intenta nuevamente con /start`
+    );
+    await TelegramConversationState.deleteOne({ telegramUserId });
   }
 }
 
@@ -150,13 +416,8 @@ async function handleMessage(
     // Mensaje normal - responder con ayuda
     await bot.sendMessage(
       chatId,
-      `💬 Para vincular tu cuenta, necesitas enviarme un código de 6 dígitos.\n\n` +
-      `📋 *Pasos:*\n` +
-      `1. Ve a tu perfil:\n` +
-      `   ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil\n\n` +
-      `2. Haz clic en "Generar Código de Vinculación"\n\n` +
-      `3. Envíame el código aquí (6 dígitos)\n\n` +
-      `Ejemplo: \`123456\`\n\n` +
+      `💬 Para vincular tu cuenta, escribe /start y sigue las instrucciones.\n\n` +
+      `O envía un código de 6 dígitos si ya lo tienes.\n\n` +
       `Usa /help para más información.`,
       { parse_mode: 'Markdown' }
     );
@@ -171,7 +432,8 @@ async function handleLinkCode(
   chatId: number,
   telegramUserId: number,
   telegramUsername: string | undefined,
-  code: string
+  code: string,
+  conversationState?: any
 ) {
   try {
     // Buscar código no usado y no expirado
@@ -236,6 +498,11 @@ async function handleLinkCode(
     linkCode.telegramUsername = telegramUsername || null;
     await linkCode.save();
 
+    // Limpiar estado de conversación si existe
+    if (conversationState) {
+      await TelegramConversationState.deleteOne({ telegramUserId });
+    }
+
     console.log(`✅ [TELEGRAM LINK] Cuenta vinculada: ${user.email} -> ${telegramUserId} (@${telegramUsername || 'sin username'})`);
 
     // Enviar confirmación al usuario
@@ -244,7 +511,7 @@ async function handleLinkCode(
       `✅ *¡Cuenta vinculada exitosamente!*\n\n` +
       `Tu cuenta de Telegram ha sido vinculada con:\n` +
       `📧 Email: ${user.email}\n` +
-      `👤 Nombre: ${user.name}\n\n` +
+      `👤 Nombre: ${user.name || user.email}\n\n` +
       `Ahora recibirás todas las alertas de tus suscripciones activas en este chat.\n\n` +
       `💡 *Próximos pasos:*\n` +
       `1. Genera links de invitación desde tu perfil para unirte a los canales\n` +
