@@ -127,12 +127,21 @@ async function handleCommand(
       );
       break;
 
+    case '/grupos':
+      if (!telegramUserId) {
+        await bot.sendMessage(chatId, `❌ No se pudo identificar tu usuario de Telegram.`);
+        break;
+      }
+      await handleGruposCommand(bot, chatId, telegramUserId);
+      break;
+
     case '/help':
       await bot.sendMessage(
         chatId,
         `👋 ¡Hola! Soy el bot de Lozano Nahuel.\n\n` +
         `📋 *Comandos disponibles:*\n\n` +
         `🔗 /start - Iniciar vinculación de cuenta (te pedirá tu email)\n` +
+        `👥 /grupos - Ver grupos disponibles según tus suscripciones\n` +
         `ℹ️ /help - Mostrar esta ayuda\n\n` +
         `*¿Cómo vincular mi cuenta?*\n\n` +
         `1️⃣ Escribe /start\n\n` +
@@ -512,10 +521,9 @@ async function handleLinkCode(
       `Tu cuenta de Telegram ha sido vinculada con:\n` +
       `📧 Email: ${user.email}\n` +
       `👤 Nombre: ${user.name || user.email}\n\n` +
-      `Ahora recibirás todas las alertas de tus suscripciones activas en este chat.\n\n` +
       `💡 *Próximos pasos:*\n` +
-      `1. Genera links de invitación desde tu perfil para unirte a los canales\n` +
-      `2. Recibirás alertas automáticamente cuando estés en los canales\n\n` +
+      `1. Poné /grupos para ver los grupos disponibles según suscripción.\n` +
+      `2. Recibirás alertas automáticamente en el chat grupal cuando estés en los canales!\n\n` +
       `¡Gracias por ser parte de nuestra comunidad! 🚀`,
       { parse_mode: 'Markdown' }
     );
@@ -525,6 +533,180 @@ async function handleLinkCode(
     await bot.sendMessage(
       chatId,
       `❌ Ocurrió un error al vincular tu cuenta. Por favor, intenta nuevamente o contacta al soporte.`
+    );
+  }
+}
+
+/**
+ * Maneja el comando /grupos - muestra grupos disponibles según suscripciones
+ */
+async function handleGruposCommand(
+  bot: TelegramBot,
+  chatId: number,
+  telegramUserId: number
+) {
+  try {
+    await dbConnect();
+
+    // Buscar usuario por telegramUserId
+    const user = await User.findOne({ telegramUserId });
+    
+    if (!user) {
+      await bot.sendMessage(
+        chatId,
+        `❌ No tienes tu cuenta vinculada.\n\n` +
+        `Escribe /start para vincular tu cuenta primero.`
+      );
+      return;
+    }
+
+    // Verificar que el bot esté configurado
+    if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_ENABLED !== 'true') {
+      await bot.sendMessage(
+        chatId,
+        `❌ Bot de Telegram no configurado. Contacta al soporte.`
+      );
+      return;
+    }
+
+    // Mapeo de servicios a canales y nombres
+    const SERVICES_MAP: Record<string, { channelId: string; name: string; emoji: string }> = {
+      'TraderCall': {
+        channelId: process.env.TELEGRAM_CHANNEL_TRADERCALL || '',
+        name: 'Trader Call',
+        emoji: '📈'
+      },
+      'SmartMoney': {
+        channelId: process.env.TELEGRAM_CHANNEL_SMARTMONEY || '',
+        name: 'Smart Money',
+        emoji: '💰'
+      }
+    };
+
+    // Obtener suscripciones activas
+    const activeSubscriptions = user.activeSubscriptions?.filter(
+      (sub: any) => sub.isActive && new Date(sub.expiryDate) > new Date()
+    ) || [];
+
+    // Si es admin, mostrar todos los grupos
+    const servicesToShow = user.role === 'admin' 
+      ? Object.keys(SERVICES_MAP)
+      : activeSubscriptions.map((sub: any) => sub.service).filter((s: string) => SERVICES_MAP[s]);
+
+    if (servicesToShow.length === 0) {
+      await bot.sendMessage(
+        chatId,
+        `📭 *No tienes suscripciones activas*\n\n` +
+        `No hay grupos disponibles para ti en este momento.\n\n` +
+        `Para acceder a los grupos, necesitas tener una suscripción activa a alguno de nuestros servicios.\n\n` +
+        `Visita: ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    // Enviar mensaje de carga
+    const loadingMessage = await bot.sendMessage(
+      chatId,
+      `⏳ Generando links de invitación...`
+    );
+
+    const botInstance = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+    const expireDate = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 1 día en segundos
+
+    let message = `👥 *Grupos Disponibles*\n\n`;
+    message += `Según tus suscripciones activas, puedes acceder a los siguientes grupos:\n\n`;
+
+    const inviteLinks: Array<{ service: string; name: string; emoji: string; link: string }> = [];
+
+    // Generar links para cada servicio
+    for (const service of servicesToShow) {
+      const serviceInfo = SERVICES_MAP[service];
+      if (!serviceInfo || !serviceInfo.channelId) {
+        continue;
+      }
+
+      try {
+        // Generar link de invitación temporal
+        const inviteLink = await botInstance.createChatInviteLink(serviceInfo.channelId, {
+          expire_date: expireDate,
+          member_limit: 1, // Solo 1 uso
+          name: `${user.email} - ${service} - ${new Date().toISOString().split('T')[0]}`
+        });
+
+        inviteLinks.push({
+          service,
+          name: serviceInfo.name,
+          emoji: serviceInfo.emoji,
+          link: inviteLink.invite_link
+        });
+
+        // Actualizar telegramChannelAccess en el usuario
+        if (!user.telegramChannelAccess) {
+          user.telegramChannelAccess = [];
+        }
+
+        const existingAccess = user.telegramChannelAccess.find(
+          (access: any) => access.service === service
+        );
+
+        if (existingAccess) {
+          existingAccess.inviteLink = inviteLink.invite_link;
+        } else {
+          user.telegramChannelAccess.push({
+            service,
+            channelId: serviceInfo.channelId,
+            joinedAt: new Date(),
+            inviteLink: inviteLink.invite_link
+          });
+        }
+
+      } catch (error: any) {
+        console.error(`❌ [TELEGRAM] Error generando link para ${service}:`, error);
+        // Continuar con los demás servicios aunque uno falle
+      }
+    }
+
+    // Guardar cambios en el usuario
+    await user.save();
+
+    // Construir mensaje con los links
+    if (inviteLinks.length === 0) {
+      await bot.editMessageText(
+        `❌ Error generando links de invitación. Por favor, intenta nuevamente más tarde.`,
+        { chat_id: chatId, message_id: loadingMessage.message_id }
+      );
+      return;
+    }
+
+    message += `*Grupos disponibles:*\n\n`;
+
+    for (const invite of inviteLinks) {
+      message += `${invite.emoji} *${invite.name}*\n`;
+      message += `🔗 [Unirse al grupo](${invite.link})\n\n`;
+    }
+
+    message += `⏱️ *Importante:*\n`;
+    message += `• Los links expiran en 24 horas\n`;
+    message += `• Cada link solo puede usarse 1 vez\n`;
+    message += `• Si expira, usa /grupos para generar nuevos links\n\n`;
+    message += `💡 Haz clic en los links para unirte a los grupos.`;
+
+    // Editar el mensaje de carga con los resultados
+    await bot.editMessageText(message, {
+      chat_id: chatId,
+      message_id: loadingMessage.message_id,
+      parse_mode: 'Markdown',
+      disable_web_page_preview: false
+    });
+
+    console.log(`✅ [TELEGRAM] Links de grupos generados para ${user.email} (${inviteLinks.length} grupos)`);
+
+  } catch (error: any) {
+    console.error('❌ [TELEGRAM WEBHOOK] Error en comando /grupos:', error);
+    await bot.sendMessage(
+      chatId,
+      `❌ Ocurrió un error al obtener los grupos. Por favor, intenta nuevamente más tarde o contacta al soporte.`
     );
   }
 }
