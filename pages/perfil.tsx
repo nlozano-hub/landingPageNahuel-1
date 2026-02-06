@@ -223,8 +223,10 @@ export default function PerfilPage() {
     linkedAt: string | null;
   }>({ isLinked: false, telegramUserId: null, telegramUsername: null, linkedAt: null });
   const [telegramLoading, setTelegramLoading] = useState(false);
-  const [telegramIdInput, setTelegramIdInput] = useState('');
-  const [telegramUsernameInput, setTelegramUsernameInput] = useState('');
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [linkCodeExpiresAt, setLinkCodeExpiresAt] = useState<Date | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [botUsername, setBotUsername] = useState<string | null>(null);
   const [inviteLinks, setInviteLinks] = useState<{ [key: string]: string }>({});
   const [generatingLink, setGeneratingLink] = useState<string | null>(null);
 
@@ -258,38 +260,79 @@ export default function PerfilPage() {
     }
   };
 
-  // Vincular Telegram
-  const handleLinkTelegram = async () => {
-    if (!telegramIdInput.trim()) {
-      toast.error('Ingresa tu ID de Telegram');
-      return;
-    }
+  // Obtener información del bot (username)
+  useEffect(() => {
+    const fetchBotInfo = async () => {
+      try {
+        const response = await fetch('/api/telegram/bot-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.username) {
+            setBotUsername(data.username);
+          }
+        }
+      } catch (error) {
+        console.error('Error obteniendo info del bot:', error);
+      }
+    };
+    fetchBotInfo();
+  }, []);
 
-    setTelegramLoading(true);
+  // Generar código de vinculación
+  const handleGenerateLinkCode = async () => {
+    setGeneratingCode(true);
     try {
-      const response = await fetch('/api/telegram/link-account', {
+      const response = await fetch('/api/telegram/generate-link-code', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegramUserId: telegramIdInput.trim(),
-          telegramUsername: telegramUsernameInput.trim() || undefined
-        })
+        headers: { 'Content-Type': 'application/json' }
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('¡Telegram vinculado exitosamente!');
-        setTelegramIdInput('');
-        setTelegramUsernameInput('');
-        fetchTelegramStatus();
+        setLinkCode(data.code);
+        setLinkCodeExpiresAt(new Date(data.expiresAt));
+        toast.success('Código generado. Envíalo al bot de Telegram.', { duration: 5000 });
+        
+        // Verificar periódicamente si se vinculó
+        const checkInterval = setInterval(async () => {
+          const statusResponse = await fetch('/api/telegram/link-account');
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.isLinked) {
+              clearInterval(checkInterval);
+              setLinkCode(null);
+              setLinkCodeExpiresAt(null);
+              setTelegramData({
+                isLinked: true,
+                telegramUserId: statusData.telegramUserId,
+                telegramUsername: statusData.telegramUsername,
+                linkedAt: statusData.linkedAt
+              });
+              toast.success('¡Cuenta vinculada exitosamente!', { duration: 5000 });
+            }
+          }
+        }, 3000); // Verificar cada 3 segundos
+
+        // Limpiar intervalo después de 15 minutos
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          const statusResponse = fetch('/api/telegram/link-account').then(r => r.json());
+          statusResponse.then(statusData => {
+            if (!statusData.isLinked && linkCode) {
+              setLinkCode(null);
+              setLinkCodeExpiresAt(null);
+              toast.error('El código expiró. Genera uno nuevo.', { duration: 5000 });
+            }
+          });
+        }, 15 * 60 * 1000);
       } else {
-        toast.error(data.error || 'Error al vincular Telegram');
+        toast.error(data.error || 'Error generando código');
       }
     } catch (error) {
       toast.error('Error de conexión');
     } finally {
-      setTelegramLoading(false);
+      setGeneratingCode(false);
     }
   };
 
@@ -832,71 +875,194 @@ export default function PerfilPage() {
                         </div>
                       ) : (
                         <div style={{ marginTop: '1rem' }}>
-                          <div style={{ 
-                            padding: '1rem',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            borderRadius: '8px',
-                            marginBottom: '1.5rem'
-                          }}>
-                            <p style={{ margin: 0, color: '#D97706', fontSize: '0.9rem' }}>
-                              <strong>¿Cómo obtener tu ID de Telegram?</strong><br />
-                              1. Abrí Telegram y buscá <code>@userinfobot</code><br />
-                              2. Enviále cualquier mensaje<br />
-                              3. El bot te responderá con tu ID (ej: 123456789)
-                            </p>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                                ID de Telegram *
-                              </label>
-                              <input
-                                type="text"
-                                value={telegramIdInput}
-                                onChange={(e) => setTelegramIdInput(e.target.value)}
-                                placeholder="Ej: 123456789"
-                                className={styles.formInput}
-                                style={{ width: '100%', maxWidth: '300px' }}
-                              />
-                            </div>
-                            
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                                Username (opcional)
-                              </label>
-                              <input
-                                type="text"
-                                value={telegramUsernameInput}
-                                onChange={(e) => setTelegramUsernameInput(e.target.value)}
-                                placeholder="Ej: @tuusuario"
-                                className={styles.formInput}
-                                style={{ width: '100%', maxWidth: '300px' }}
-                              />
-                            </div>
-
-                            <button
-                              onClick={handleLinkTelegram}
-                              disabled={telegramLoading || !telegramIdInput.trim()}
-                              style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: '#0088cc',
-                                color: 'white',
-                                border: 'none',
+                          {!linkCode ? (
+                            <>
+                              <div style={{ 
+                                padding: '1rem',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                 borderRadius: '8px',
-                                cursor: telegramLoading || !telegramIdInput.trim() ? 'not-allowed' : 'pointer',
-                                opacity: telegramLoading || !telegramIdInput.trim() ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.9rem',
-                                width: 'fit-content'
-                              }}
-                            >
-                              <Link2 size={16} />
-                              {telegramLoading ? 'Vinculando...' : 'Vincular Telegram'}
-                            </button>
-                          </div>
+                                marginBottom: '1.5rem',
+                                border: '1px solid rgba(59, 130, 246, 0.2)'
+                              }}>
+                                <p style={{ margin: 0, color: '#1E40AF', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                                  <strong>🔗 Vincular desde Telegram</strong><br />
+                                  Genera un código y envíalo directamente al bot de Telegram. ¡Es más fácil y rápido!
+                                </p>
+                              </div>
+
+                              <div style={{ 
+                                padding: '1rem',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                borderRadius: '8px',
+                                marginBottom: '1.5rem'
+                              }}>
+                                <p style={{ margin: 0, color: '#D97706', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                                  <strong>📋 Pasos para vincular:</strong><br />
+                                  1. Haz clic en "Generar Código"<br />
+                                  2. Abre Telegram y busca el bot<br />
+                                  3. Envía el código de 6 dígitos al bot<br />
+                                  4. ¡Listo! Tu cuenta quedará vinculada automáticamente
+                                </p>
+                              </div>
+
+                              <button
+                                onClick={handleGenerateLinkCode}
+                                disabled={generatingCode}
+                                style={{
+                                  padding: '1rem 2rem',
+                                  backgroundColor: '#0088cc',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  cursor: generatingCode ? 'not-allowed' : 'pointer',
+                                  opacity: generatingCode ? 0.6 : 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  fontSize: '1rem',
+                                  fontWeight: 600,
+                                  width: 'fit-content',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!generatingCode) {
+                                    e.currentTarget.style.backgroundColor = '#0066aa';
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!generatingCode) {
+                                    e.currentTarget.style.backgroundColor = '#0088cc';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                  }
+                                }}
+                              >
+                                <Link2 size={20} />
+                                {generatingCode ? 'Generando...' : 'Generar Código de Vinculación'}
+                              </button>
+                            </>
+                          ) : (
+                            <div style={{ marginTop: '1rem' }}>
+                              <div style={{ 
+                                padding: '1.5rem',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderRadius: '12px',
+                                border: '2px solid rgba(16, 185, 129, 0.3)',
+                                marginBottom: '1.5rem'
+                              }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '1rem',
+                                  marginBottom: '1rem'
+                                }}>
+                                  <div style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    backgroundColor: '#10B981',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 700,
+                                    color: 'white'
+                                  }}>
+                                    {linkCode}
+                                  </div>
+                                  <div>
+                                    <h4 style={{ margin: 0, color: '#065F46', fontSize: '1.1rem' }}>
+                                      Código Generado
+                                    </h4>
+                                    <p style={{ margin: '0.25rem 0 0', color: '#047857', fontSize: '0.85rem' }}>
+                                      {linkCodeExpiresAt && `Expira en ${Math.ceil((linkCodeExpiresAt.getTime() - Date.now()) / 1000 / 60)} minutos`}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div style={{
+                                  padding: '1rem',
+                                  backgroundColor: 'white',
+                                  borderRadius: '8px',
+                                  marginBottom: '1rem'
+                                }}>
+                                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#374151', lineHeight: '1.6' }}>
+                                    <strong>📱 Instrucciones:</strong><br />
+                                    1. Abre Telegram<br />
+                                    2. {botUsername ? (
+                                      <>
+                                        Busca el bot: <strong style={{ color: '#0088cc' }}>@{botUsername}</strong> o{' '}
+                                        <a href={`https://t.me/${botUsername}`} target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc', textDecoration: 'underline' }}>abre este link</a>
+                                      </>
+                                    ) : (
+                                      'Busca el bot de Telegram'
+                                    )}<br />
+                                    3. Envía este código: <strong style={{ fontSize: '1.2rem', color: '#10B981' }}>{linkCode}</strong><br />
+                                    4. El bot te confirmará cuando esté vinculado
+                                  </p>
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(linkCode);
+                                    toast.success('Código copiado al portapapeles');
+                                  }}
+                                  style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: 'white',
+                                    color: '#10B981',
+                                    border: '2px solid #10B981',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                    width: 'fit-content',
+                                    marginRight: '1rem'
+                                  }}
+                                >
+                                  <Copy size={16} />
+                                  Copiar Código
+                                </button>
+
+                                <button
+                                  onClick={handleGenerateLinkCode}
+                                  disabled={generatingCode}
+                                  style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: '#F59E0B',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: generatingCode ? 'not-allowed' : 'pointer',
+                                    opacity: generatingCode ? 0.6 : 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                    width: 'fit-content'
+                                  }}
+                                >
+                                  <RefreshCw size={16} />
+                                  Generar Nuevo Código
+                                </button>
+                              </div>
+
+                              <div style={{ 
+                                padding: '1rem',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(59, 130, 246, 0.2)'
+                              }}>
+                                <p style={{ margin: 0, color: '#1E40AF', fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                  💡 <strong>Tip:</strong> Si no encuentras el bot, puedes usar el comando /start en cualquier chat de Telegram y luego buscar el bot por su nombre.
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
