@@ -66,8 +66,8 @@ export default function AsesoriasFechasPage() {
       setLoading(true);
       // console.log('📅 Cargando fechas de asesorías...');
       
-      // Para admin, queremos ver TODAS las fechas (pasadas y futuras) para poder gestionarlas
-      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero?futureOnly=false');
+      // Para admin, queremos ver TODAS las fechas (pasadas, futuras, activas e inactivas) para poder gestionarlas
+      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero?futureOnly=false&includeInactive=true');
       
       if (response.ok) {
         const data = await response.json();
@@ -414,23 +414,23 @@ export default function AsesoriasFechasPage() {
                         {ADVISORY_TYPES[advisoryDate.advisoryType]}
                       </div>
                       <div className={`${styles.scheduleStatus} ${
-                        advisoryDate.isBooked ? styles.booked : 
-                        advisoryDate.isActive ? styles.active : styles.inactive
+                        !advisoryDate.isActive ? styles.inactive :
+                        advisoryDate.isBooked ? styles.booked : styles.active
                       }`}>
-                        {advisoryDate.isBooked ? (
+                        {!advisoryDate.isActive ? (
+                          <>
+                            <XCircle size={16} />
+                            Eliminada
+                          </>
+                        ) : advisoryDate.isBooked ? (
                           <>
                             <CheckCircle size={16} />
                             Reservado
                           </>
-                        ) : advisoryDate.isActive ? (
+                        ) : (
                           <>
                             <CheckCircle size={16} />
                             Disponible
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={16} />
-                            Inactivo
                           </>
                         )}
                       </div>
@@ -457,23 +457,32 @@ export default function AsesoriasFechasPage() {
                     </div>
 
                     <div className={styles.scheduleActions}>
-                      <button
-                        className={styles.editButton}
-                        onClick={() => handleEdit(advisoryDate)}
-                        disabled={advisoryDate.isBooked}
-                      >
-                        <Edit3 size={16} />
-                        Editar
-                      </button>
-                      <button
-                        className={styles.deleteButton}
-                        onClick={() => handleDelete(advisoryDate._id, advisoryDate.advisoryType)}
-                        disabled={advisoryDate.isBooked}
-                        title={advisoryDate.isBooked ? 'No se puede eliminar una fecha reservada' : 'Eliminar fecha'}
-                      >
-                        <Trash2 size={16} />
-                        Eliminar
-                      </button>
+                      {advisoryDate.isActive && (
+                        <>
+                          <button
+                            className={styles.editButton}
+                            onClick={() => handleEdit(advisoryDate)}
+                            disabled={advisoryDate.isBooked}
+                          >
+                            <Edit3 size={16} />
+                            Editar
+                          </button>
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => handleDelete(advisoryDate._id, advisoryDate.advisoryType)}
+                            disabled={advisoryDate.isBooked}
+                            title={advisoryDate.isBooked ? 'No se puede eliminar una fecha reservada' : 'Eliminar fecha'}
+                          >
+                            <Trash2 size={16} />
+                            Eliminar
+                          </button>
+                        </>
+                      )}
+                      {!advisoryDate.isActive && (
+                        <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+                          Esta fecha fue eliminada
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 ))

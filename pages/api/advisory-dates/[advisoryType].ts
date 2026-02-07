@@ -40,7 +40,14 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse, advisoryType
   try {
     const onlyAvailable = req.query.available === 'true';
     const futureOnly = req.query.futureOnly !== 'false';
-    const query: any = { advisoryType, isActive: true };
+    const includeInactive = req.query.includeInactive === 'true'; // Para admin: ver todas las fechas
+    
+    const query: any = { advisoryType };
+    
+    // Solo filtrar por isActive si no se solicita incluir inactivas (para admin)
+    if (!includeInactive) {
+      query.isActive = true;
+    }
     
     if (onlyAvailable) {
       const now = new Date();
