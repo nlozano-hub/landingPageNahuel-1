@@ -264,15 +264,21 @@
 }
 
 .servicesGrid {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 3rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
   margin: 0 auto;
-  max-width: 1200px;
+  max-width: 1600px;
   padding: 2rem 0;
   position: relative;
   z-index: 1;
+  align-items: stretch;
+}
+
+@media (max-width: 1400px) {
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .serviceCard {
@@ -286,9 +292,10 @@
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  min-height: 500px;
-  max-width: 400px;
-  margin: 0 auto;
+  height: 100%;
+  min-height: 650px;
+  max-width: 100%;
+  margin: 0;
 }
 
 .serviceCard:hover {
@@ -385,10 +392,11 @@
 
 /* Main Content */
 .serviceContent {
-  padding: 1rem;
+  padding: 1.5rem;
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .serviceHeader {
@@ -421,6 +429,11 @@
   opacity: 0.95;
   line-height: 1.5;
   color: white;
+  min-height: 3.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .featureList {
@@ -429,15 +442,20 @@
   margin: 0 0 1.5rem 0;
   text-align: left;
   flex-grow: 1;
+  min-height: 8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .featureItem {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   font-size: 0.8rem;
-  line-height: 1.4;
+  line-height: 1.5;
   color: white;
+  min-height: 2rem;
 }
 
 .checkmark {
@@ -634,12 +652,13 @@
   }
 
   .servicesGrid {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 2rem;
+    padding: 1rem;
   }
 
   .serviceCard {
-    min-height: 450px;
+    min-height: 500px;
     max-width: 100%;
   }
 
