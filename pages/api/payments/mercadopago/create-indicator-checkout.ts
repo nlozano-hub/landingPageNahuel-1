@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Obtener producto del body
     const { product } = req.body;
-    if (!product || !['MediasMovilesAutomaticas', 'RSIConHistoricos', 'SmartMACD', 'KoncordePro'].includes(product)) {
+    if (!product || !['MediasMovilesAutomaticas', 'RSIConHistoricos', 'SmartMACD', 'KoncordePro', 'PackIndicadores'].includes(product)) {
       return res.status(400).json({ success: false, error: 'Producto inválido' });
     }
     
@@ -75,6 +75,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       amount = pricing.indicadores?.koncordePro?.price || 30000;
       currency = pricing.indicadores?.koncordePro?.currency || 'ARS';
       productName = 'Koncorde Pro';
+    } else if (product === 'PackIndicadores') {
+      amount = pricing.indicadores?.packIndicadores?.price || 70000;
+      currency = pricing.indicadores?.packIndicadores?.currency || 'ARS';
+      productName = 'Pack de Indicadores';
     }
     
     console.log('💰 Precio configurado:', { product, amount, currency });

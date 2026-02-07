@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar que el pago sea del servicio de indicadores
-    if (payment.service !== 'MediasMovilesAutomaticas' && payment.service !== 'RSIConHistoricos' && payment.service !== 'SmartMACD' && payment.service !== 'KoncordePro') {
+    if (payment.service !== 'MediasMovilesAutomaticas' && payment.service !== 'RSIConHistoricos' && payment.service !== 'SmartMACD' && payment.service !== 'KoncordePro' && payment.service !== 'PackIndicadores') {
       return res.status(400).json({ 
         success: false, 
         error: 'El pago no corresponde al servicio de indicadores' 

@@ -344,6 +344,25 @@ const IndicadoresPage: React.FC = () => {
                 </motion.div>
               ))}
             </div>
+
+            {/* Pack de Indicadores - CTA destacado */}
+            <motion.div
+              className={styles.packCta}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
+              <div className={styles.packCtaContent}>
+                <h3 className={styles.packCtaTitle}>💎 Pack Completo de Indicadores</h3>
+                <p className={styles.packCtaDescription}>
+                  Ahorrá comprando todos los indicadores juntos. Acceso vitalicio a los 4 indicadores profesionales.
+                </p>
+                <Link href="/packindicadores" className={styles.packCtaButton}>
+                  Ver Pack Completo &gt;
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </section>
 
@@ -367,8 +386,8 @@ const IndicadoresPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
             >
-              <h3 className={styles.statNumber}>1</h3>
-              <p className={styles.statLabel}>Indicador Premium</p>
+              <h3 className={styles.statNumber}>4</h3>
+              <p className={styles.statLabel}>Indicadores Premium</p>
             </motion.div>
 
             <motion.div

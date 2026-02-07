@@ -68,6 +68,13 @@ export interface PricingData {
       originalPrice?: number;
       discount?: number;
     };
+    packIndicadores?: {
+      price: number;
+      currency: string;
+      description: string;
+      originalPrice?: number;
+      discount?: number;
+    };
   };
   asesorias: {
     consultorioFinanciero: {

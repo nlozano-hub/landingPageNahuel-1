@@ -86,6 +86,13 @@ export interface PricingDocument extends Document {
       originalPrice?: number;
       discount?: number;
     };
+    packIndicadores: {
+      price: number;
+      currency: string;
+      description: string;
+      originalPrice?: number;
+      discount?: number;
+    };
   };
   
   // Configuración general
@@ -172,6 +179,13 @@ const PricingSchema = new Schema({
       price: { type: Number, required: true, default: 30000 },
       currency: { type: String, required: true, default: 'ARS' },
       description: { type: String, default: 'Indicador Koncorde Pro para TradingView' },
+      originalPrice: { type: Number },
+      discount: { type: Number, min: 0, max: 100 }
+    },
+    packIndicadores: {
+      price: { type: Number, required: true, default: 70000 },
+      currency: { type: String, required: true, default: 'ARS' },
+      description: { type: String, default: 'Pack completo con todos los indicadores para TradingView' },
       originalPrice: { type: Number },
       discount: { type: Number, min: 0, max: 100 }
     }

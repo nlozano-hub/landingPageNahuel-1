@@ -121,6 +121,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
       label: 'Indicadores',
       href: '/indicadores',
       dropdown: [
+        { label: 'Pack de Indicadores', href: '/packindicadores' },
         { label: 'Medias Móviles Automáticas', href: '/mediasmovilesautomaticas' },
         { label: 'RSI con Históricos', href: '/rsiconhistoricos' },
         { label: 'Smart MACD', href: '/smartmacd' },
