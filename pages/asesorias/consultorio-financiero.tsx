@@ -81,6 +81,7 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
   faqs 
 }) => {
   const { data: session } = useSession();
+  const [isAdmin, setIsAdmin] = useState(false);
   const { createBooking, loading } = useBookings();
   const { pricing, loading: pricingLoading } = usePricing();
   const [proximosTurnos, setProximosTurnos] = useState<TurnoDisponible[]>([]);
@@ -99,6 +100,18 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
     email: '',
     whatsapp: ''
   });
+
+  // Verificar si el usuario es admin
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch('/api/auth/verify-role')
+        .then(res => res.json())
+        .then(data => setIsAdmin(data.role === 'admin'))
+        .catch(() => setIsAdmin(false));
+    } else {
+      setIsAdmin(false);
+    }
+  }, [session]);
 
   // Cargar fechas específicas de asesoría al montar el componente
   useEffect(() => {
@@ -581,11 +594,16 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
 
       <Navbar />
 
-      <ComingSoon 
-        title="Próximamente"
-        message="Estamos trabajando en esta sección. Muy pronto estará disponible."
-      />
+      {/* ComingSoon solo visible para usuarios NO admin */}
+      {!isAdmin && (
+        <ComingSoon 
+          title="Próximamente"
+          message="Estamos trabajando en esta sección. Muy pronto estará disponible."
+        />
+      )}
 
+      {/* Contenido visible solo para admin */}
+      {isAdmin && (
       <main className={styles.main}>
         {/* Hero Section */}
         <section className={styles.heroSection}>
@@ -1054,10 +1072,9 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
             </div>
           </section>
         )}
-      </main>
 
-      {/* Modal de Éxito */}
-      {showSuccessModal && (
+        {/* Modal de Éxito */}
+        {showSuccessModal && (
         <div className={styles.modalOverlay}>
           <motion.div 
             className={styles.successModal}
@@ -1124,6 +1141,8 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
             </div>
           </motion.div>
         </div>
+        )}
+      </main>
       )}
 
       <Footer />
