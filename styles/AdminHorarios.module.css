@@ -1,12 +1,29 @@
 .main {
   min-height: calc(100vh - 200px);
   padding: 2rem 1rem;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 30%, #16213e 70%, #0f172a 100%);
+  position: relative;
+}
+
+.main::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -15,10 +32,25 @@
   align-items: center;
   margin-bottom: 3rem;
   gap: 2rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .headerContent {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .headerActions {
@@ -27,20 +59,47 @@
   align-items: center;
 }
 
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  padding: 0.5rem 0;
+}
+
+.backButton:hover {
+  color: #fff;
+  transform: translateX(-4px);
+}
+
 .title {
   font-size: 2.5rem;
   color: #fff;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
+  margin: 0;
+  font-weight: 800;
   display: flex;
   align-items: center;
   gap: 1rem;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.titleIcon {
+  color: #6366f1;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
 }
 
 .subtitle {
   font-size: 1.1rem;
-  color: #b0b0b0;
-  margin-bottom: 0;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-weight: 400;
 }
 
 .syncButton {
@@ -117,38 +176,44 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #00ff88;
-  color: #1a1a1a;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
 
 .addButton:hover {
-  background: #00cc6a;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .cleanButton {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #f59e0b;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: #fff;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 }
 
 .cleanButton:hover {
-  background: #d97706;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
 /* Formulario Modal */
@@ -167,13 +232,35 @@
 }
 
 .formContainer {
-  background: #2d2d2d;
-  border-radius: 1rem;
-  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
   width: 100%;
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  margin-bottom: 2rem;
+}
+
+.formTitle {
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.formTitle::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
 }
 
 .formHeader {
@@ -269,51 +356,168 @@
   font-weight: 600;
 }
 
+/* Form Styles */
+.form {
+  width: 100%;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.formGroup label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.formGroup input::placeholder,
+.formGroup textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 0 0 4px rgba(99, 102, 241, 0.1),
+    0 8px 24px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+
+.formGroup select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236366f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 1rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25em 1.25em;
+  padding-right: 3rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.formGroup:last-of-type {
+  grid-column: 1 / -1;
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  padding-top: 1.5rem;
+  padding-top: 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem;
 }
 
 .cancelButton {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .cancelButton:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.submitButton {
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.submitButton:disabled {
+  background: rgba(107, 114, 128, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .saveButton {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #00ff88;
-  color: #1a1a1a;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
 
 .saveButton:hover:not(:disabled) {
-  background: #00cc6a;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .saveButton:disabled {
-  background: #666;
+  background: rgba(107, 114, 128, 0.5);
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Lista de Horarios */
@@ -354,16 +558,70 @@
   margin: 0;
 }
 
+.content {
+  padding: 2rem 0;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1.5rem;
+}
+
 .loading {
   text-align: center;
-  color: #b0b0b0;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1.1rem;
   padding: 3rem;
 }
 
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(99, 102, 241, 0.2);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  gap: 1rem;
+}
+
+.emptyState svg {
+  color: rgba(99, 102, 241, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.emptyState h3 {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.emptyState p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0;
+}
+
 .empty {
   text-align: center;
-  color: #b0b0b0;
+  color: rgba(255, 255, 255, 0.7);
   padding: 3rem;
 }
 
@@ -389,18 +647,37 @@
 }
 
 .scheduleCard {
-  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-  border-radius: 1rem;
-  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 1.75rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.scheduleCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .scheduleCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.scheduleCard:hover::before {
+  opacity: 1;
 }
 
 .scheduleCard.unavailable {
@@ -417,14 +694,57 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scheduleType {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.scheduleType svg {
+  color: #6366f1;
+}
+
+.scheduleStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.scheduleStatus.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.scheduleStatus.booked {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.scheduleStatus.inactive {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
 }
 
 .scheduleDate {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
   font-size: 1rem;
 }
@@ -436,30 +756,65 @@
 }
 
 .statusAvailable {
-  color: #00ff88;
+  color: #10b981;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
 }
 
 .statusBooked {
-  color: #00ff88;
+  color: #6366f1;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
 }
 
 .statusUnavailable {
-  color: #ff6b6b;
+  color: #9ca3af;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(107, 114, 128, 0.15);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 8px;
+}
+
+.scheduleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.scheduleDetail {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.scheduleDetail svg {
+  color: rgba(99, 102, 241, 0.7);
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
 }
 
 .scheduleDetails {
@@ -477,46 +832,88 @@
 }
 
 .scheduleDuration {
-  color: #b0b0b0;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
 }
 
 .scheduleActions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.editButton:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+  transform: translateY(-1px);
+}
+
+.editButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .deleteButton {
-  background: rgba(255, 107, 107, 0.2);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  color: #ff6b6b;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .deleteButton:hover:not(:disabled) {
-  background: rgba(255, 107, 107, 0.3);
-  border-color: rgba(255, 107, 107, 0.5);
-  transform: scale(1.05);
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  transform: translateY(-1px);
 }
 
 .deleteButton:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .main {
+    padding: 1rem 0.5rem;
+  }
+
   .header {
     flex-direction: column;
     align-items: stretch;
     gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .headerText {
     text-align: center;
   }
   
@@ -524,14 +921,27 @@
     font-size: 2rem;
     justify-content: center;
   }
-  
-  .addButton {
-    align-self: center;
+
+  .buttonGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .addButton,
+  .cleanButton {
+    width: 100%;
+    justify-content: center;
   }
   
   .formContainer {
     padding: 1.5rem;
-    margin: 1rem;
+    margin: 0;
+    border-radius: 16px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
   
   .section {
@@ -544,17 +954,27 @@
   
   .schedulesGrid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.25rem;
   }
   
   .scheduleCard {
-    padding: 1rem;
+    padding: 1.25rem;
   }
   
   .scheduleHeader {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .scheduleActions {
+    flex-direction: column;
+  }
+
+  .editButton,
+  .deleteButton {
+    width: 100%;
+    justify-content: center;
   }
   
   .formActions {
@@ -562,7 +982,9 @@
   }
   
   .saveButton,
-  .cancelButton {
+  .cancelButton,
+  .submitButton {
+    width: 100%;
     justify-content: center;
   }
 } 

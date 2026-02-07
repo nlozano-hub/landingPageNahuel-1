@@ -1324,8 +1324,8 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
           </div>
         </section>
 
-        {/* Roadmap de Aprendizaje */}
-        <section className={styles.roadmapSection} style={{ display: 'none' }}>
+        {/* Roadmap de Aprendizaje - Visible solo para admin */}
+        <section className={styles.roadmapSection} style={{ display: isAdmin ? 'block' : 'none' }}>
           <div className={styles.container}>
             <motion.div
               initial={{ opacity: 0, y: 30 }}
