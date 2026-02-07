@@ -66,8 +66,8 @@ export default function AsesoriasFechasPage() {
       setLoading(true);
       // console.log('📅 Cargando fechas de asesorías...');
       
-      // Para admin, queremos ver TODAS las fechas (pasadas, futuras, activas e inactivas) para poder gestionarlas
-      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero?futureOnly=false&includeInactive=true');
+      // Para admin, queremos ver TODAS las fechas (pasadas y futuras) pero solo las activas
+      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero?futureOnly=false');
       
       if (response.ok) {
         const data = await response.json();
