@@ -79,6 +79,13 @@ export interface PricingDocument extends Document {
       originalPrice?: number;
       discount?: number;
     };
+    koncordePro: {
+      price: number;
+      currency: string;
+      description: string;
+      originalPrice?: number;
+      discount?: number;
+    };
   };
   
   // Configuración general
@@ -158,6 +165,13 @@ const PricingSchema = new Schema({
       price: { type: Number, required: true, default: 20000 },
       currency: { type: String, required: true, default: 'ARS' },
       description: { type: String, default: 'Indicador Smart MACD para TradingView' },
+      originalPrice: { type: Number },
+      discount: { type: Number, min: 0, max: 100 }
+    },
+    koncordePro: {
+      price: { type: Number, required: true, default: 30000 },
+      currency: { type: String, required: true, default: 'ARS' },
+      description: { type: String, default: 'Indicador Koncorde Pro para TradingView' },
       originalPrice: { type: Number },
       discount: { type: Number, min: 0, max: 100 }
     }

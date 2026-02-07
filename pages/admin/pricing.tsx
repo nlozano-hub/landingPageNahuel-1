@@ -570,6 +570,60 @@ export default function AdminPricing({ session }: AdminPricingProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Koncorde Pro */}
+              <div className={styles.subsection}>
+                <h3 className={styles.subsectionTitle}>Koncorde Pro</h3>
+                <div className={styles.priceInputs}>
+                  <div className={styles.priceInput}>
+                    <label>Precio</label>
+                    <div className={styles.inputWrapper}>
+                      <span className={styles.currency}>$</span>
+                      <input
+                        type="number"
+                        step={localPricing.currency === 'ARS' ? '1' : '0.01'}
+                        min="0"
+                        value={localPricing.indicadores?.koncordePro?.price ?? 30000}
+                        onChange={(e) => handleInputChange('indicadores.koncordePro.price', localPricing.currency === 'ARS' ? parseInt(e.target.value) : parseFloat(e.target.value))}
+                        className={styles.input}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.priceInput}>
+                    <label>Precio Original (opcional)</label>
+                    <div className={styles.inputWrapper}>
+                      <span className={styles.currency}>$</span>
+                      <input
+                        type="number"
+                        step={localPricing.currency === 'ARS' ? '1' : '0.01'}
+                        min="0"
+                        value={localPricing.indicadores?.koncordePro?.originalPrice ?? ''}
+                        onChange={(e) => handleInputChange('indicadores.koncordePro.originalPrice', e.target.value ? (localPricing.currency === 'ARS' ? parseInt(e.target.value) : parseFloat(e.target.value)) : undefined)}
+                        className={styles.input}
+                        placeholder="Sin descuento"
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.priceInput}>
+                    <label>Descuento % (opcional)</label>
+                    <div className={styles.inputWrapper}>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max="100"
+                        value={localPricing.indicadores?.koncordePro?.discount ?? ''}
+                        onChange={(e) => handleInputChange('indicadores.koncordePro.discount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className={styles.input}
+                        placeholder="0"
+                      />
+                      <span className={styles.percent}>%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 

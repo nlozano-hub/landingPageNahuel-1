@@ -224,6 +224,21 @@ const IndicadoresPage: React.FC = () => {
       buttonTextColor: '#a855f7', 
       tag: 'TradingView',
       videoId: 'dQw4w9WgXcQ'
+    },
+    {
+      title: 'Koncorde Pro',
+      description: 'Indicador para TradingView. El mismo que utilizo en Trader Call y Smart Money para analizar flujo, acumulación y cambios de fase en el mercado.',
+      features: [
+        'Oscilador de flujo avanzado combinando volumen, precio y momentum',
+        'Componentes Manos Grandes y Manos Chicas para detectar actividad informada',
+        'Montaña que representa presión especulativa y dinero tardío',
+        'Etiquetas automáticas de Traspaso de Manos para identificar acumulación'
+      ],
+      href: '/koncordepro',
+      backgroundColor: '#7c3aed',
+      buttonTextColor: '#a855f7', 
+      tag: 'TradingView',
+      videoId: 'dQw4w9WgXcQ'
     }
   ];
 
@@ -415,6 +430,9 @@ const IndicadoresPage: React.FC = () => {
               </Link>
               <Link href="/smartmacd" className={styles.ctaButton}>
                 Smart MACD &gt;
+              </Link>
+              <Link href="/koncordepro" className={styles.ctaButton}>
+                Koncorde Pro &gt;
               </Link>
             </motion.div>
           </div>

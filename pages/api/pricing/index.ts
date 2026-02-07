@@ -76,6 +76,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               description: 'Indicador Smart MACD para TradingView',
               originalPrice: undefined,
               discount: undefined
+            },
+            koncordePro: {
+              price: 30000,
+              currency: 'ARS',
+              description: 'Indicador Koncorde Pro para TradingView',
+              originalPrice: undefined,
+              discount: undefined
             }
           },
           currency: 'ARS',

@@ -304,7 +304,7 @@ async function processSuccessfulPayment(payment: any, paymentInfo: any) {
     const isSubscription = ['TraderCall', 'SmartMoney', 'CashFlow'].includes(service);
     const isTraining = ['SwingTrading', 'DowJones'].includes(service);
     const isBooking = externalRef && externalRef.startsWith('booking_');
-    const isIndicator = service === 'MediasMovilesAutomaticas' || service === 'RSIConHistoricos' || service === 'SmartMACD';
+    const isIndicator = service === 'MediasMovilesAutomaticas' || service === 'RSIConHistoricos' || service === 'SmartMACD' || service === 'KoncordePro';
     const isMonthlyTrainingSubscription = externalRef && externalRef.startsWith('MTS_');
     
     // Detectar si es un trial basado en metadata o external_reference

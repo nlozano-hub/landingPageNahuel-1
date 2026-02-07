@@ -63,6 +63,7 @@ const FooterComponent: React.FC = () => {
                 <li><Link href="/mediasmovilesautomaticas" className={styles.footerLink}>Medias Móviles Automáticas</Link></li>
                 <li><Link href="/rsiconhistoricos" className={styles.footerLink}>RSI con Históricos</Link></li>
                 <li><Link href="/smartmacd" className={styles.footerLink}>Smart MACD</Link></li>
+                <li><Link href="/koncordepro" className={styles.footerLink}>Koncorde Pro</Link></li>
               </ul>
             </div>
 

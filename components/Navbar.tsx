@@ -124,6 +124,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
         { label: 'Medias Móviles Automáticas', href: '/mediasmovilesautomaticas' },
         { label: 'RSI con Históricos', href: '/rsiconhistoricos' },
         { label: 'Smart MACD', href: '/smartmacd' },
+        { label: 'Koncorde Pro', href: '/koncordepro' },
       ],
     },
     {
