@@ -910,11 +910,14 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
 
       <Navbar />
       
-      <ComingSoon 
-        title="Próximamente"
-        message="Estamos trabajando en esta sección. Muy pronto estará disponible."
-      />
+      {!isAdmin && (
+        <ComingSoon 
+          title="Próximamente"
+          message="Estamos trabajando en esta sección. Muy pronto estará disponible."
+        />
+      )}
       
+      {isAdmin && (
       <main className={styles.main}>
         {/* Hero Section con Video Explicativo */}
         <section className={styles.heroSection}>
@@ -1592,6 +1595,7 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
           </div>
         </section>
       </main>
+      )}
 
       <Footer />
 

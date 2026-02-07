@@ -66,7 +66,8 @@ export default function AsesoriasFechasPage() {
       setLoading(true);
       // console.log('📅 Cargando fechas de asesorías...');
       
-      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero');
+      // Para admin, queremos ver TODAS las fechas (pasadas y futuras) para poder gestionarlas
+      const response = await fetch('/api/advisory-dates/ConsultorioFinanciero?futureOnly=false');
       
       if (response.ok) {
         const data = await response.json();
