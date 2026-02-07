@@ -54,6 +54,13 @@ export interface PricingData {
       originalPrice?: number;
       discount?: number;
     };
+    smartMACD?: {
+      price: number;
+      currency: string;
+      description: string;
+      originalPrice?: number;
+      discount?: number;
+    };
   };
   asesorias: {
     consultorioFinanciero: {

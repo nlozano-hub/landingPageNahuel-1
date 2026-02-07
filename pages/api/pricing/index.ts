@@ -69,6 +69,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               description: 'Indicador RSI con Históricos para TradingView',
               originalPrice: undefined,
               discount: undefined
+            },
+            smartMACD: {
+              price: 20000,
+              currency: 'ARS',
+              description: 'Indicador Smart MACD para TradingView',
+              originalPrice: undefined,
+              discount: undefined
             }
           },
           currency: 'ARS',

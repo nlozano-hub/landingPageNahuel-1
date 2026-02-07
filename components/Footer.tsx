@@ -62,6 +62,7 @@ const FooterComponent: React.FC = () => {
               <ul className={styles.linkList}>
                 <li><Link href="/mediasmovilesautomaticas" className={styles.footerLink}>Medias Móviles Automáticas</Link></li>
                 <li><Link href="/rsiconhistoricos" className={styles.footerLink}>RSI con Históricos</Link></li>
+                <li><Link href="/smartmacd" className={styles.footerLink}>Smart MACD</Link></li>
               </ul>
             </div>
 

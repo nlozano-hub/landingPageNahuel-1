@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const type = String(payment.metadata?.type || '').toLowerCase();
 
       // Indicadores
-      if (service === 'MediasMovilesAutomaticas' || service === 'RSIConHistoricos') return 'indicador';
+      if (service === 'MediasMovilesAutomaticas' || service === 'RSIConHistoricos' || service === 'SmartMACD') return 'indicador';
 
       // Consultas financieras
       if (service === 'ConsultorioFinanciero') return 'consulta financiera';

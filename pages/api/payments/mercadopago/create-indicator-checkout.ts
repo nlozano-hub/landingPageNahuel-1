@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Obtener producto del body
     const { product } = req.body;
-    if (!product || !['MediasMovilesAutomaticas', 'RSIConHistoricos'].includes(product)) {
+    if (!product || !['MediasMovilesAutomaticas', 'RSIConHistoricos', 'SmartMACD'].includes(product)) {
       return res.status(400).json({ success: false, error: 'Producto inválido' });
     }
     
@@ -67,6 +67,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       amount = pricing.indicadores?.rsiConHistoricos?.price || 20000;
       currency = pricing.indicadores?.rsiConHistoricos?.currency || 'ARS';
       productName = 'RSI con Históricos';
+    } else if (product === 'SmartMACD') {
+      amount = pricing.indicadores?.smartMACD?.price || 20000;
+      currency = pricing.indicadores?.smartMACD?.currency || 'ARS';
+      productName = 'Smart MACD';
     }
     
     console.log('💰 Precio configurado:', { product, amount, currency });

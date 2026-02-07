@@ -209,6 +209,21 @@ const IndicadoresPage: React.FC = () => {
       buttonTextColor: '#a855f7', 
       tag: 'TradingView',
       videoId: 'dQw4w9WgXcQ'
+    },
+    {
+      title: 'Smart MACD',
+      description: 'Indicador para TradingView. El mismo que utilizo en Trader Call y Smart Money para jerarquizar señales del MACD y evitar interpretaciones planas.',
+      features: [
+        'MACD optimizado con contexto manteniendo la estructura clásica',
+        'Clasificación automática de señales en cuatro estados (Compra/Venta fuerte/débil)',
+        'Nivel cero como eje de contexto para distinguir tendencias',
+        'Etiquetas claras y legibles que se ajustan dinámicamente'
+      ],
+      href: '/smartmacd',
+      backgroundColor: '#7c3aed',
+      buttonTextColor: '#a855f7', 
+      tag: 'TradingView',
+      videoId: 'dQw4w9WgXcQ'
     }
   ];
 
@@ -397,6 +412,9 @@ const IndicadoresPage: React.FC = () => {
               </Link>
               <Link href="/rsiconhistoricos" className={styles.ctaButton}>
                 RSI con Históricos &gt;
+              </Link>
+              <Link href="/smartmacd" className={styles.ctaButton}>
+                Smart MACD &gt;
               </Link>
             </motion.div>
           </div>

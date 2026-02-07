@@ -53,11 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Buscar el pago correspondiente (puede ser MediasMovilesAutomaticas o RSIConHistoricos)
+    // Buscar el pago correspondiente (indicadores)
     const payment = await Payment.findOne({ 
       externalReference: paymentReference,
       userEmail: session.user.email,
-      service: { $in: ['MediasMovilesAutomaticas', 'RSIConHistoricos'] }
+      service: { $in: ['MediasMovilesAutomaticas', 'RSIConHistoricos', 'SmartMACD'] }
     });
 
     if (!payment) {
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <div class="container">
           <div class="header">
             <h1>🎯 Nuevo Usuario de TradingView</h1>
-            <p>Indicador: ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}</p>
+            <p>Indicador: ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : payment.service === 'SmartMACD' ? 'Smart MACD' : 'Medias Móviles Automáticas'}</p>
           </div>
           
           <div class="content">
@@ -146,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               <div class="value">${payment._id}</div>
             </div>
             
-            <p><strong>📋 Acción requerida:</strong> Habilitar el acceso al indicador "${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}" en TradingView para el usuario: <strong>${tradingViewUser}</strong></p>
+            <p><strong>📋 Acción requerida:</strong> Habilitar el acceso al indicador "${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : payment.service === 'SmartMACD' ? 'Smart MACD' : 'Medias Móviles Automáticas'}" en TradingView para el usuario: <strong>${tradingViewUser}</strong></p>
           </div>
           
           <div class="footer">
@@ -159,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `;
 
     // Enviar email al admin
-    const indicatorName = payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas';
+    const indicatorName = payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : payment.service === 'SmartMACD' ? 'Smart MACD' : 'Medias Móviles Automáticas';
     await sendEmail({
       to: adminEmail,
       subject: `🎯 Nuevo Usuario TradingView - ${indicatorName} - ${tradingViewUser}`,

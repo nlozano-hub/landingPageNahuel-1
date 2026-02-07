@@ -123,6 +123,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
       dropdown: [
         { label: 'Medias Móviles Automáticas', href: '/mediasmovilesautomaticas' },
         { label: 'RSI con Históricos', href: '/rsiconhistoricos' },
+        { label: 'Smart MACD', href: '/smartmacd' },
       ],
     },
     {
