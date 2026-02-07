@@ -81,7 +81,7 @@ export default function IndicatorSuccessPage() {
     return (
       <>
         <Head>
-          <title>Acceso Denegado - Indicador Medias Móviles</title>
+          <title>Acceso Denegado - Indicador</title>
         </Head>
         <Navbar />
         <main className={styles.main}>
@@ -100,7 +100,7 @@ export default function IndicatorSuccessPage() {
   return (
     <>
       <Head>
-        <title>Pago Exitoso - Indicador Medias Móviles Automáticas</title>
+        <title>Pago Exitoso - Indicador</title>
         <meta name="description" content="Tu pago fue procesado exitosamente. Completa el formulario para recibir tu acceso al indicador." />
       </Head>
 
@@ -183,7 +183,7 @@ export default function IndicatorSuccessPage() {
                 <li>El acceso se habilita manualmente en menos de 24 horas</li>
                 <li>Busca el indicador en "Requiere invitación" en TradingView</li>
                 <li>El acceso es vitalicio y personal</li>
-                <li>Si tienes dudas, contacta: lozanonahuel@gmail.com</li>
+                <li>Si tienes dudas, contacta: soporte@lozanonahuel.com</li>
               </ul>
             </div>
           </div>

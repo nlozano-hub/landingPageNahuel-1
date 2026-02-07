@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import BackgroundVideo from '@/components/BackgroundVideo';
 import { usePricing } from '@/hooks/usePricing';
-import styles from '@/styles/MediasMovilesAutomaticas.module.css';
+import styles from '@/styles/RSIConHistoricos.module.css';
 
 /**
  * Componente de carousel automático para videos de YouTube
@@ -96,8 +96,8 @@ const YouTubeAutoCarousel: React.FC = () => {
   );
 };
 
-export default function MediasMovilesAutomaticasPage() {
-  // Landing page para el indicador de Medias Móviles Automáticas
+export default function RSIConHistoricosPage() {
+  // Landing page para el indicador de RSI con Históricos
   const { data: session } = useSession();
   const { pricing, loading: pricingLoading, formatPrice } = usePricing();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -118,7 +118,7 @@ export default function MediasMovilesAutomaticasPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          product: 'MediasMovilesAutomaticas'
+          product: 'RSIConHistoricos'
         })
       });
       
@@ -140,10 +140,10 @@ export default function MediasMovilesAutomaticasPage() {
   return (
     <>
       <Head>
-        <title>Medias móviles automáticas | Indicador TradingView</title>
+        <title>RSI con Históricos | Indicador TradingView</title>
         <meta
           name="description"
-          content="Indicador avanzado para TradingView con medias móviles diarias/semanales automáticas, etiquetas y panel de contexto."
+          content="Indicador avanzado para TradingView con RSI configurable, zonas de sobrecompra/sobreventa, media móvil del RSI e históricos en tiempo real."
         />
       </Head>
 
@@ -176,7 +176,7 @@ export default function MediasMovilesAutomaticasPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  Medias móviles automáticas
+                  RSI con Históricos
                 </motion.h1>
                 <motion.p 
                   className={styles.subtitle}
@@ -184,8 +184,8 @@ export default function MediasMovilesAutomaticasPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
                 >
-                  Indicador para TradingView. El mismo que uso en Trader Call y Smart Money para
-                  tomar decisiones reales de trading.
+                  Indicador para TradingView. El mismo que utilizo en Trader Call y Smart Money para analizar momentum,
+                  extremos y cambios de contexto.
                 </motion.p>
                 <motion.div 
                   className={styles.heroCtas}
@@ -220,8 +220,8 @@ export default function MediasMovilesAutomaticasPage() {
               >
                 <div className={styles.videoContainer}>
                   <YouTubePlayer
-                    videoId="2fd95k3BM9c"
-                    title="Medias Móviles Automáticas - Video"
+                    videoId="dQw4w9WgXcQ"
+                    title="RSI con Históricos - Video Explicativo"
                     autoplay={true}
                     muted={true}
                     loop={false}
@@ -254,15 +254,12 @@ export default function MediasMovilesAutomaticasPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
-                <h3>Medias móviles automáticas</h3>
+                <h3>RSI avanzado y configurable</h3>
                 <p>
-                  Detección del marco temporal (diario/semanal) y configuración automática de WMA, SMA y
-                  EMA clave.
+                  RSI ajustable desde la fuente de datos que prefieras (cierre, apertura, máximo,
+                  mínimo, etc.), permitiendo adaptar el indicador a distintas estrategias y estilos
+                  operativos.
                 </p>
-                <ul>
-                  <li>Diario: WMA 21, SMA 30, EMA 150, SMA 200</li>
-                  <li>Semanal: WMA 10, WMA 30, WMA 50, SMA 200</li>
-                </ul>
               </motion.div>
               <motion.div 
                 className={styles.featureCard}
@@ -271,10 +268,10 @@ export default function MediasMovilesAutomaticasPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <h3>Etiquetas y distancias</h3>
+                <h3>Zonas de sobrecompra y sobreventa</h3>
                 <p>
-                  Etiquetas junto a cada media y distancias porcentuales para identificar soportes y
-                  resistencias dinámicos.
+                  Niveles clásicos de 70 y 30 claramente visibles, con fondo suavizado para
+                  identificar rápidamente zonas de tensión del precio.
                 </p>
               </motion.div>
               <motion.div 
@@ -284,8 +281,12 @@ export default function MediasMovilesAutomaticasPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                <h3>Panel de contexto</h3>
-                <p>Beta vs. SPY, industria, país y métricas clave en un panel compacto.</p>
+                <h3>Media móvil del RSI</h3>
+                <p>
+                  Incorpora una media móvil totalmente configurable sobre el RSI:
+                  SMA, EMA, RMA/SMMA, WMA o VWMA, para mejorar la lectura de tendencia y
+                  momentum.
+                </p>
               </motion.div>
               <motion.div 
                 className={styles.featureCard}
@@ -294,9 +295,36 @@ export default function MediasMovilesAutomaticasPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
+                <h3>Históricos en tiempo real</h3>
+                <p>
+                  Muestra automáticamente el máximo y mínimo histórico del RSI alcanzado en
+                  todo el gráfico, con etiquetas visibles que aportan contexto real al valor actual.
+                </p>
+              </motion.div>
+              <motion.div 
+                className={styles.featureCard}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+              >
+                <h3>Visual y funcional</h3>
+                <p>
+                  Todos los valores clave se anclan sobre la última vela, con colores intuitivos
+                  que facilitan la interpretación sin sobrecargar el gráfico.
+                </p>
+              </motion.div>
+              <motion.div 
+                className={styles.featureCard}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
                 <h3>Método probado</h3>
                 <p>
-                  Es la misma herramienta que uso en mis servicios de suscripción para análisis y señales.
+                  Es la misma herramienta que utilizo en mis servicios de suscripción para
+                  evaluar cambios de momentum y zonas extremas con contexto histórico.
                 </p>
               </motion.div>
             </div>
@@ -328,7 +356,7 @@ export default function MediasMovilesAutomaticasPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                Realizás el pago con MercadoPago
+                Realizás el pago con Mercado Pago
               </motion.li>
               <motion.li
                 initial={{ opacity: 0, x: -20 }}
@@ -361,10 +389,10 @@ export default function MediasMovilesAutomaticasPage() {
               transition={{ duration: 0.6 }}
             >
               <div className={styles.priceHeader}>
-                <h3>Accede hoy mismo</h3>
+                <h3>Accedé hoy mismo</h3>
                 <p className={styles.priceTitle}>Pago único de</p>
                 <p className={styles.priceAmount}>
-                  {pricingLoading ? 'Cargando...' : formatPrice(pricing?.indicadores?.mediasMovilesAutomaticas?.price || 30000)}
+                  {pricingLoading ? 'Cargando...' : formatPrice(pricing?.indicadores?.rsiConHistoricos?.price || 20000)}
                 </p>
               </div>
               <button className={styles.primaryButton} onClick={handleBuy} disabled={isProcessing}>
@@ -396,44 +424,43 @@ export default function MediasMovilesAutomaticasPage() {
             >
               <details>
                 <summary>¿Por cuánto tiempo tendré acceso?</summary>
-                <p>El acceso es vitalicio: una vez que lo compras y se habilita en tu usuario de TradingView, podrás usarlo sin límite de tiempo. No es una suscripción mensual ni anual; es un pago único que te garantiza acceso permanente, incluso si actualizo o mejoro el indicador en el futuro.</p>
+                <p>El acceso es vitalicio. Pagás una sola vez y el indicador queda habilitado de forma permanente en tu usuario de TradingView, incluyendo futuras mejoras o actualizaciones.</p>
               </details>
               <details>
                 <summary>¿Necesito TradingView Premium?</summary>
-                <p>No. El indicador funciona perfectamente con la cuenta gratuita de TradingView. La única condición es que tengas un usuario en la plataforma y me lo envíes tras tu compra para habilitarte el acceso. Tené en cuenta que si ya alcanzaste el máximo de indicadores dentro del gráfico para tu plan, debés quitar uno de ellos para colocar este.</p>
+                <p>No. Funciona perfectamente con la cuenta gratuita de TradingView. Solo necesitás un usuario activo para que pueda habilitarte el acceso.</p>
               </details>
               <details>
-                <summary>¿Donde encuentro el indicador?</summary>
-                <p>Debes Iniciar sesión en TradingView, luego dirigirte a la sección Productos y abrir los Supergráficos. Una vez en los gráficos, ir al apartado indicadores y luego a Requiere invitación. Allí encontrarás todos los indicadores que ofrecemos. Podés hacer click en la “estrella” para agregarlos a indicadores favoritos.</p>
+                <summary>¿Dónde encuentro el indicador?</summary>
+                <p>Iniciá sesión en TradingView → Productos → Supergráficos → Indicadores → Requiere invitación. Ahí vas a encontrar el RSI con Históricos. Podés marcarlo con la estrella para dejarlo en favoritos.</p>
               </details>
               <details>
                 <summary>¿Puedo usarlo en cualquier activo?</summary>
-                <p>Sí. Puedes aplicarlo en acciones, índices, criptomonedas, ETFs, futuros o cualquier instrumento disponible en TradingView. El indicador ajusta automáticamente las medias según estés en gráfico diario o semanal.</p>
+                <p>Sí. Funciona en acciones, índices, criptomonedas, ETFs, futuros o cualquier instrumento disponible en TradingView.</p>
               </details>
               <details>
                 <summary>¿Puedo instalarlo en varios dispositivos?</summary>
-                <p>Sí. Mientras uses la misma cuenta de TradingView, puedes acceder al indicador desde tu computadora, tablet o celular sin problema.</p>
+                <p>Sí. Mientras uses la misma cuenta de TradingView, podés acceder desde computadora, tablet o celular.</p>
               </details>
               <details>
                 <summary>¿Puedo compartirlo con otras personas?</summary>
-                <p>No. Es de uso personal. El acceso se otorga de forma individual y está vinculado a tu usuario de TradingView. Compartirlo o intentar duplicarlo sin permiso viola los términos de uso.</p>
+                <p>No. El acceso es personal e individual, vinculado a tu usuario de TradingView. Compartirlo o duplicarlo viola los términos de uso.</p>
               </details>
               <details>
-                <summary>¿En cuánto tiempo recibiré el acceso después de pagar?</summary>
-                <p>Normalmente en menos de 24 horas desde que envías tu usuario de TradingView. En muchos casos, lo habilitamos en 1–2 horas durante días hábiles.</p>
+                <summary>¿En cuánto tiempo recibiré el acceso?</summary>
+                <p>Normalmente en menos de 24 horas desde que enviás tu usuario de TradingView. En muchos casos, dentro de 1–2 horas en días hábiles.</p>
               </details>
               <details>
-                <summary>¿Recibiré actualizaciones y mejoras del indicador?</summary>
-                <p>Sí. En caso de mejoras o nuevas funciones, tendrás acceso a la versión actualizada sin costo adicional, mientras mantengas activo tu acceso como comprador original.</p>
+                <summary>¿Recibiré actualizaciones y mejoras?</summary>
+                <p>Sí. Todas las mejoras futuras estarán disponibles sin costo adicional para quienes tengan acceso habilitado.</p>
               </details>
               <details>
-                <summary>¿Puedo usarlo en marcos temporales distintos a diario y semanal?</summary>
-                <p>semanal?
-                Puedes aplicarlo en cualquier marco temporal de TradingView, pero el indicador está optimizado para mostrar las medias móviles correspondientes al diario o semanal según el gráfico en el que trabajes.</p>
+                <summary>¿Puedo usarlo en cualquier marco temporal?</summary>
+                <p>Sí. El indicador funciona en cualquier marco temporal de TradingView y adapta la lectura del RSI al contexto del gráfico que estés analizando.</p>
               </details>
               <details>
                 <summary>¿Seguís con dudas?</summary>
-                <p>Escribime un correo electrónico a la siguiente casilla para resolver las dudas que te puedan surgir: soporte@lozanonahuel.com</p>
+                <p>Escribime a soporte@lozanonahuel.com y te ayudo a resolver cualquier consulta.</p>
               </details>
             </motion.div>
           </div>
@@ -470,5 +497,3 @@ export default function MediasMovilesAutomaticasPage() {
     </>
   );
 }
-
-

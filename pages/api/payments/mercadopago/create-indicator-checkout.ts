@@ -8,7 +8,7 @@ import Pricing from '@/models/Pricing';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
 
 /**
- * Crea un checkout de MercadoPago para el indicador "MediasMovilesAutomaticas"
+ * Crea un checkout de MercadoPago para indicadores (MediasMovilesAutomaticas o RSIConHistoricos)
  * Cobro único, acceso vitalicio administrado manualmente en TradingView.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -40,7 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     console.log('✅ Usuario encontrado:', user._id);
 
-    const product = 'MediasMovilesAutomaticas';
+    // Obtener producto del body
+    const { product } = req.body;
+    if (!product || !['MediasMovilesAutomaticas', 'RSIConHistoricos'].includes(product)) {
+      return res.status(400).json({ success: false, error: 'Producto inválido' });
+    }
     
     // Obtener precio desde Pricing
     console.log('🔧 Obteniendo configuración de precios...');
@@ -50,9 +54,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ success: false, error: 'No hay configuración de precios' });
     }
     
-    const amount = pricing.indicadores?.mediasMovilesAutomaticas?.price || 30000;
-    const currency = pricing.indicadores?.mediasMovilesAutomaticas?.currency || 'ARS';
-    console.log('💰 Precio configurado:', { amount, currency });
+    // Obtener precio según el producto
+    let amount = 0;
+    let currency = 'ARS';
+    let productName = '';
+    
+    if (product === 'MediasMovilesAutomaticas') {
+      amount = pricing.indicadores?.mediasMovilesAutomaticas?.price || 30000;
+      currency = pricing.indicadores?.mediasMovilesAutomaticas?.currency || 'ARS';
+      productName = 'Medias Móviles Automáticas';
+    } else if (product === 'RSIConHistoricos') {
+      amount = pricing.indicadores?.rsiConHistoricos?.price || 20000;
+      currency = pricing.indicadores?.rsiConHistoricos?.currency || 'ARS';
+      productName = 'RSI con Históricos';
+    }
+    
+    console.log('💰 Precio configurado:', { product, amount, currency });
 
     const baseUrl = (process.env.NEXTAUTH_URL || 'http://localhost:3000').replace(/\/$/, '');
     const externalReference = `indicator_${product}_${user._id}_${Date.now()}`;
@@ -67,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('🔧 Creando preferencia de MercadoPago...');
     const pref = await createMercadoPagoPreference(
-      `Indicador ${product}`,
+      `Indicador ${productName}`,
       amount,
       currency,
       externalReference,

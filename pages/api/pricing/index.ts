@@ -62,6 +62,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               description: 'Indicador Medias Móviles Automáticas para TradingView',
               originalPrice: undefined,
               discount: undefined
+            },
+            rsiConHistoricos: {
+              price: 20000,
+              currency: 'ARS',
+              description: 'Indicador RSI con Históricos para TradingView',
+              originalPrice: undefined,
+              discount: undefined
             }
           },
           currency: 'ARS',

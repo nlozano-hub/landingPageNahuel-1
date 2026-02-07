@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ✅ CORREGIDO: No usar .lean() para asegurar que metadata se lea correctamente
     // Buscar todos los pagos del servicio de indicadores que estén aprobados
     const payments = await Payment.find({
-      service: 'MediasMovilesAutomaticas',
+      service: { $in: ['MediasMovilesAutomaticas', 'RSIConHistoricos'] },
       status: 'approved'
     }).sort({ transactionDate: -1 });
 

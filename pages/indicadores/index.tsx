@@ -194,6 +194,21 @@ const IndicadoresPage: React.FC = () => {
       buttonTextColor: '#a855f7', 
       tag: 'TradingView',
       videoId: '0NpdClGWaY8'
+    },
+    {
+      title: 'RSI con Históricos',
+      description: 'Indicador para TradingView. El mismo que utilizo en Trader Call y Smart Money para analizar momentum, extremos y cambios de contexto.',
+      features: [
+        'RSI avanzado y configurable desde la fuente de datos que prefieras',
+        'Zonas de sobrecompra y sobreventa con niveles clásicos de 70 y 30',
+        'Media móvil del RSI totalmente configurable (SMA, EMA, RMA/SMMA, WMA o VWMA)',
+        'Históricos en tiempo real con máximo y mínimo histórico del RSI'
+      ],
+      href: '/rsiconhistoricos',
+      backgroundColor: '#7c3aed',
+      buttonTextColor: '#a855f7', 
+      tag: 'TradingView',
+      videoId: 'dQw4w9WgXcQ'
     }
   ];
 
@@ -379,6 +394,9 @@ const IndicadoresPage: React.FC = () => {
             >
               <Link href="/mediasmovilesautomaticas" className={styles.ctaButton}>
                 Medias Móviles Automáticas &gt;
+              </Link>
+              <Link href="/rsiconhistoricos" className={styles.ctaButton}>
+                RSI con Históricos &gt;
               </Link>
             </motion.div>
           </div>

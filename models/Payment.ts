@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IPayment extends Document {
   userId: mongoose.Types.ObjectId;
   userEmail: string;
-  service: 'TraderCall' | 'SmartMoney' | 'SwingTrading' | 'ConsultorioFinanciero' | 'MediasMovilesAutomaticas';
+  service: 'TraderCall' | 'SmartMoney' | 'SwingTrading' | 'ConsultorioFinanciero' | 'MediasMovilesAutomaticas' | 'RSIConHistoricos';
   amount: number;
   currency: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'in_process';
@@ -34,7 +34,7 @@ const PaymentSchema: Schema = new Schema({
   },
   service: {
     type: String,
-    enum: ['TraderCall', 'SmartMoney', 'SwingTrading', 'ConsultorioFinanciero', 'MediasMovilesAutomaticas'],
+    enum: ['TraderCall', 'SmartMoney', 'SwingTrading', 'ConsultorioFinanciero', 'MediasMovilesAutomaticas', 'RSIConHistoricos'],
     required: true
   },
   amount: {

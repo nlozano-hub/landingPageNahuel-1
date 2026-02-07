@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar que el pago sea del servicio de indicadores
-    if (payment.service !== 'MediasMovilesAutomaticas') {
+    if (payment.service !== 'MediasMovilesAutomaticas' && payment.service !== 'RSIConHistoricos') {
       return res.status(400).json({ 
         success: false, 
         error: 'El pago no corresponde al servicio de indicadores' 
@@ -191,13 +191,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <div class="container">
           <div class="header">
             <h1>✅ Acceso Habilitado</h1>
-            <p>Indicador Medias Móviles Automáticas</p>
+            <p>Indicador ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}</p>
           </div>
           
           <div class="content">
             <div class="info-box">
               <h3>👋 ¡Hola ${userName}!</h3>
-              <p>Hola, ¿cómo estás? Te confirmo la recepción de tu compra del Indicador Medias Móviles Automáticas. 🚀</p>
+              <p>Hola, ¿cómo estás? Te confirmo la recepción de tu compra del Indicador ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}. 🚀</p>
             </div>
             
             ${tradingViewUser ? `
@@ -227,12 +227,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             <div class="info-box">
               <h3>⚠️ Tené en cuenta</h3>
-              <p>Si ya tenés otros indicadores en el gráfico y superás la cantidad máxima permitida según tu plan de TradingView, vas a necesitar eliminar uno para poder añadir el Indicador Medias Móviles Automáticas.</p>
+              <p>Si ya tenés otros indicadores en el gráfico y superás la cantidad máxima permitida según tu plan de TradingView, vas a necesitar eliminar uno para poder añadir el Indicador ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}.</p>
             </div>
 
             <div class="info-box">
               <h3>📊 Detalles de tu compra:</h3>
-              <p><strong>Servicio:</strong> Medias Móviles Automáticas</p>
+              <p><strong>Servicio:</strong> ${payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas'}</p>
               ${tradingViewUser ? `<p><strong>Usuario TradingView:</strong> ${tradingViewUser}</p>` : ''}
               <p><strong>Fecha de alta:</strong> ${new Date().toLocaleString('es-AR')}</p>
               <p><strong>Email de contacto:</strong> ${userEmail}</p>
@@ -254,9 +254,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `;
 
     // Enviar email al usuario
+    const indicatorName = payment.service === 'RSIConHistoricos' ? 'RSI con Históricos' : 'Medias Móviles Automáticas';
     await sendEmail({
       to: userEmail,
-      subject: '✅ Acceso Habilitado - Indicador Medias Móviles Automáticas',
+      subject: `✅ Acceso Habilitado - Indicador ${indicatorName}`,
       html
     });
 
