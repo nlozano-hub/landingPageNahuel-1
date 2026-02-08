@@ -249,8 +249,8 @@ export default function PackIndicadoresPage() {
                 </motion.p>
               </div>
               
-              {/* Video Player en el Hero */}
-              <motion.div 
+              {/* Video Player en el Hero - Oculto hasta tener el video */}
+              {/* <motion.div 
                 className={styles.heroVideo}
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -267,7 +267,7 @@ export default function PackIndicadoresPage() {
                     className={styles.videoPlayer}
                   />
                 </div>
-              </motion.div>
+              </motion.div> */}
             </motion.div>
           </div>
         </section>
@@ -504,8 +504,8 @@ export default function PackIndicadoresPage() {
           </div>
         </section>
 
-        {/* Sección YouTube Community */}
-        <section className={styles.youtubeSection}>
+        {/* Sección YouTube Community - Oculto hasta tener los videos */}
+        {/* <section className={styles.youtubeSection}>
           <div className={styles.container}>
             <motion.div 
               className={styles.youtubeContent}
@@ -528,7 +528,7 @@ export default function PackIndicadoresPage() {
               </div>
             </motion.div>
           </div>
-        </section>
+        </section> */}
       </main>
 
       <Footer />

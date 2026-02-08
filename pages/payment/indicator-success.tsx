@@ -14,16 +14,45 @@ export default function IndicatorSuccessPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
   const [tradingViewUser, setTradingViewUser] = useState('');
+  const [formUrl, setFormUrl] = useState<string>('');
+
+  // Función para obtener el formulario según el servicio
+  const getFormUrl = (service: string): string => {
+    const formUrls: { [key: string]: string } = {
+      'RSIConHistoricos': 'https://docs.google.com/forms/d/e/1FAIpQLScNSud8SZkTaNgFt8fCSLk9JV52w3o3o1kV_YheT4w7KN4biQ/viewform',
+      'SmartMACD': 'https://docs.google.com/forms/d/e/1FAIpQLSeRay-Z0MWftZCb8R-nlDFtvTh5v2sR1gjzV5N7XsM6nzzxrg/viewform',
+      'KoncordePro': 'https://docs.google.com/forms/d/e/1FAIpQLScOC1eiN_ArMYaxBrs1oG-Cf0Df-J2Ml80M7hVCBAu2AuSpQA/viewform',
+      'PackIndicadores': 'https://docs.google.com/forms/d/e/1FAIpQLScOC1eiN_ArMYaxBrs1oG-Cf0Df-J2Ml80M7hVCBAu2AuSpQA/viewform', // Usar Koncorde Pro como fallback
+      'MediasMovilesAutomaticas': 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform' // Formulario original
+    };
+    return formUrls[service] || formUrls['MediasMovilesAutomaticas'];
+  };
 
   useEffect(() => {
     if (router.query.reference) {
-      setPaymentReference(router.query.reference as string);
+      const reference = router.query.reference as string;
+      setPaymentReference(reference);
+      
+      // Extraer el servicio del externalReference (formato: indicator_${product}_${user._id}_${Date.now()})
+      const parts = reference.split('_');
+      if (parts.length >= 2 && parts[0] === 'indicator') {
+        const service = parts[1];
+        const url = getFormUrl(service);
+        setFormUrl(url);
+        
+        // Redirigir automáticamente al formulario de Google Forms correcto
+        setTimeout(() => {
+          window.location.href = url;
+        }, 2000); // Redirigir después de 2 segundos
+      } else {
+        // Fallback al formulario original si no se puede determinar
+        const defaultUrl = 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform';
+        setFormUrl(defaultUrl);
+        setTimeout(() => {
+          window.location.href = defaultUrl;
+        }, 2000);
+      }
     }
-    
-    // Redirigir automáticamente al formulario de Google Forms
-    setTimeout(() => {
-      window.location.href = 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform';
-    }, 2000); // Redirigir después de 2 segundos
   }, [router.query.reference]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,9 +93,10 @@ export default function IndicatorSuccessPage() {
       setSubmitMessage(data.message);
       setTradingViewUser('');
       
-      // Redirigir al formulario de Google Forms después de 3 segundos
+      // Redirigir al formulario de Google Forms correcto después de 3 segundos
+      const url = formUrl || 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform';
       setTimeout(() => {
-        window.location.href = 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform';
+        window.location.href = url;
       }, 3000);
       
     } catch (error) {
