@@ -25,7 +25,7 @@ export default function IndicatorSuccessPage() {
       'PackIndicadores': 'https://forms.gle/LcZo6EgFZfSWMdnT8',
       'MediasMovilesAutomaticas': 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform' // Formulario original
     };
-    return formUrls[service] || formUrls['MediasMovilesAutomaticas'];
+    return formUrls[service] || formUrls['MediasMovilesAutomaticas']; 
   };
 
   useEffect(() => {
