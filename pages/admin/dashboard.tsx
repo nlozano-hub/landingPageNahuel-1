@@ -149,7 +149,7 @@ const useDashboardSections = () => {
         { label: 'Usuarios Activos', href: '/admin/users/active', icon: <UserCheck size={16} /> },
         { label: 'Gestión de Roles', href: '/admin/users/roles', icon: <Settings size={16} /> },
         { label: 'Expulsiones Telegram', href: '/admin/telegram-expulsion', icon: <Shield size={16} /> },
-        { label: 'Configuración Telegram', href: '/admin/telegram-config', icon: <Settings size={16} /> }
+        { label: 'Usuarios no vinculados', href: '/admin/users-telegram', icon: <Users size={16} /> }
       ]
     },
     {

@@ -767,7 +767,8 @@ export default async function handler(
       }
       
       // Si tiene suscripción activa pero no tiene Telegram vinculado, enviar advertencia
-      if (servicesWithActiveSubscription.length > 0) {
+      // ✅ En modo dryRun NO enviar el email (evitar spamear durante simulaciones)
+      if (servicesWithActiveSubscription.length > 0 && !dryRun) {
         console.log(`⚠️ [TELEGRAM EXPULSION] Usuario ${user.email} tiene suscripción activa en ${servicesWithActiveSubscription.join(', ')} pero NO tiene Telegram vinculado`);
         
         try {
