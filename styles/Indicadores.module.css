@@ -538,8 +538,36 @@
 .packCtaDescription {
   font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   line-height: 1.6;
+}
+
+.packCtaPrice {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.packCtaPriceOld {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.packCtaPriceNew {
+  color: #a855f7;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.packCtaPriceLabel {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .packCtaButton {

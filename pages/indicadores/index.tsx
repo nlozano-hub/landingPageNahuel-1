@@ -397,6 +397,11 @@ const IndicadoresPage: React.FC = () => {
                 <p className={styles.packCtaDescription}>
                   Ahorrá comprando todos los indicadores juntos. Acceso vitalicio a los 4 indicadores profesionales.
                 </p>
+                <p className={styles.packCtaPrice}>
+                  <span className={styles.packCtaPriceOld}>$100.000</span>
+                  <span className={styles.packCtaPriceNew}>$70.000</span>
+                  <span className={styles.packCtaPriceLabel}> — Ahorrás $30.000</span>
+                </p>
                 {errorMessagePack && (
                   <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>
                     {errorMessagePack}
