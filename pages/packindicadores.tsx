@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { signIn, useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CheckCircle, ArrowRight } from 'lucide-react';
@@ -98,11 +99,19 @@ const YouTubeAutoCarousel: React.FC = () => {
 };
 
 export default function PackIndicadoresPage() {
-  // Landing page para el Pack de Indicadores
+  // Redirigir a /indicadores: la landing del pack ya no se usa, la compra se hace desde ahí
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/indicadores');
+  }, [router]);
+
   const { data: session } = useSession();
   const { pricing, loading: pricingLoading, formatPrice } = usePricing();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // No mostrar la landing; solo redirigir
+  return null;
 
   const handleBuy = async () => {
     if (!session?.user?.email) {
