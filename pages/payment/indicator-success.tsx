@@ -22,7 +22,7 @@ export default function IndicatorSuccessPage() {
       'RSIConHistoricos': 'https://docs.google.com/forms/d/e/1FAIpQLScNSud8SZkTaNgFt8fCSLk9JV52w3o3o1kV_YheT4w7KN4biQ/viewform',
       'SmartMACD': 'https://docs.google.com/forms/d/e/1FAIpQLSeRay-Z0MWftZCb8R-nlDFtvTh5v2sR1gjzV5N7XsM6nzzxrg/viewform',
       'KoncordePro': 'https://docs.google.com/forms/d/e/1FAIpQLScOC1eiN_ArMYaxBrs1oG-Cf0Df-J2Ml80M7hVCBAu2AuSpQA/viewform',
-      'PackIndicadores': 'https://docs.google.com/forms/d/e/1FAIpQLScOC1eiN_ArMYaxBrs1oG-Cf0Df-J2Ml80M7hVCBAu2AuSpQA/viewform', // Usar Koncorde Pro como fallback
+      'PackIndicadores': 'https://forms.gle/LcZo6EgFZfSWMdnT8',
       'MediasMovilesAutomaticas': 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform' // Formulario original
     };
     return formUrls[service] || formUrls['MediasMovilesAutomaticas'];
