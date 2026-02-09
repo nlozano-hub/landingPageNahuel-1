@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { signIn, useSession } from 'next-auth/react';
 import { CheckCircle, ArrowRight, Users, TrendingUp, Clock, ChevronLeft, ChevronRight, BarChart3, Target, Zap } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -179,6 +180,44 @@ const IndicatorService: React.FC<IndicatorServiceProps> = ({
 
 const IndicadoresPage: React.FC = () => {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [isProcessingPack, setIsProcessingPack] = useState(false);
+  const [errorMessagePack, setErrorMessagePack] = useState('');
+
+  const handleBuyPack = async () => {
+    if (!session?.user?.email) {
+      await signIn('google');
+      return;
+    }
+    
+    setIsProcessingPack(true);
+    setErrorMessagePack('');
+    
+    try {
+      // Usar el endpoint específico para indicadores
+      const response = await fetch('/api/payments/mercadopago/create-indicator-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: 'PackIndicadores'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setErrorMessagePack(data.error || 'Error al procesar el pago');
+        setIsProcessingPack(false);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrorMessagePack('Error al procesar el pago. Inténtalo nuevamente.');
+      setIsProcessingPack(false);
+    }
+  };
+
   const indicatorServices = [
     {
       title: 'Medias Móviles Automáticas',
@@ -358,9 +397,22 @@ const IndicadoresPage: React.FC = () => {
                 <p className={styles.packCtaDescription}>
                   Ahorrá comprando todos los indicadores juntos. Acceso vitalicio a los 4 indicadores profesionales.
                 </p>
-                <Link href="/packindicadores" className={styles.packCtaButton}>
-                  Ver Pack Completo &gt;
-                </Link>
+                {errorMessagePack && (
+                  <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                    {errorMessagePack}
+                  </p>
+                )}
+                <button
+                  onClick={handleBuyPack}
+                  className={styles.packCtaButton}
+                  disabled={isProcessingPack}
+                  style={{ 
+                    cursor: isProcessingPack ? 'not-allowed' : 'pointer',
+                    opacity: isProcessingPack ? 0.7 : 1
+                  }}
+                >
+                  {isProcessingPack ? 'Procesando...' : 'Comprar Pack Completo >'}
+                </button>
               </div>
             </motion.div>
           </div>
