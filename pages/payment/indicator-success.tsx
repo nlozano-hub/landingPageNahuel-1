@@ -26,7 +26,7 @@ export default function IndicatorSuccessPage() {
       'MediasMovilesAutomaticas': 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform' // Formulario original
     };
     return formUrls[service] || formUrls['MediasMovilesAutomaticas'];  
-  };
+  }; 
 
   useEffect(() => {
     if (router.query.reference) {
