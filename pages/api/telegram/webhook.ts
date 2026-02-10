@@ -152,6 +152,26 @@ async function handleCommand(
       await handleGruposCommand(bot, chatId, telegramUserId);
       break;
 
+    case '/youtube':
+      await bot.sendMessage(
+        chatId,
+        `📺 *Canal de YouTube*\n\n` +
+        `🔗 [Seguir en YouTube](https://www.youtube.com/@LozanoNahuel)\n\n` +
+        `¡No te pierdas nuestros análisis y contenido exclusivo!`,
+        { parse_mode: 'Markdown', disable_web_page_preview: false }
+      );
+      break;
+
+    case '/instagram':
+      await bot.sendMessage(
+        chatId,
+        `📷 *Instagram*\n\n` +
+        `🔗 [Seguir en Instagram](https://www.instagram.com/lozanonahuel/)\n\n` +
+        `¡Seguinos para estar al día con todas las novedades!`,
+        { parse_mode: 'Markdown', disable_web_page_preview: false }
+      );
+      break;
+
     case '/vencimiento':
       if (!telegramUserId) {
         await bot.sendMessage(chatId, `❌ No se pudo identificar tu usuario de Telegram.`);
@@ -168,6 +188,8 @@ async function handleCommand(
         `🔗 /start - Iniciar vinculación de cuenta (te pedirá tu email)\n` +
         `👥 /grupos - Ver grupos disponibles según tus suscripciones\n` +
         `⏰ /vencimiento - Ver estado y renovar tus suscripciones\n` +
+        `📺 /youtube - Acceder al canal de YouTube\n` +
+        `📷 /instagram - Acceder al perfil de Instagram\n` +
         `ℹ️ /help - Mostrar esta ayuda\n\n` +
         `*¿Cómo vincular mi cuenta?*\n\n` +
         `1️⃣ Escribe /start\n\n` +
@@ -634,18 +656,6 @@ async function handleGruposCommand(
     
     console.log(`🔍 [TELEGRAM /grupos] Servicios finales a mostrar (sin duplicados):`, servicesToShow);
 
-    if (servicesToShow.length === 0) {
-      await bot.sendMessage(
-        chatId,
-        `📭 *No tienes suscripciones activas*\n\n` +
-        `No hay grupos disponibles para ti en este momento.\n\n` +
-        `Para acceder a los grupos, necesitas tener una suscripción activa a alguno de nuestros servicios.\n\n` +
-        `Visita: ${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}`,
-        { parse_mode: 'Markdown' }
-      );
-      return;
-    }
-
     // Enviar mensaje de carga
     const loadingMessage = await bot.sendMessage(
       chatId,
@@ -656,7 +666,16 @@ async function handleGruposCommand(
     const expireDate = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 1 día en segundos
 
     let message = `👥 *Grupos Disponibles*\n\n`;
-    message += `Según tus suscripciones activas, puedes acceder a los siguientes grupos:\n\n`;
+    
+    // ✅ SIEMPRE mostrar el grupo gratuito primero
+    message += `*Grupo Gratuito:*\n\n`;
+    message += `🎉 *Comunidad de Traders*\n`;
+    message += `🔗 [Unirse al grupo gratuito](https://t.me/lozanonahuelcomunidad/)\n\n`;
+    
+    // Si hay suscripciones activas, mostrar los grupos premium
+    if (servicesToShow.length > 0) {
+      message += `*Grupos Premium (según tus suscripciones):*\n\n`;
+    }
 
     const inviteLinks: Array<{ service: string; name: string; emoji: string; link: string }> = [];
 
@@ -712,25 +731,35 @@ async function handleGruposCommand(
     await user.save();
 
     // Construir mensaje con los links
-    if (inviteLinks.length === 0) {
+    // Si no hay links de invitación pero hay grupo gratuito, mostrar solo el gratuito
+    if (inviteLinks.length === 0 && servicesToShow.length > 0) {
       await bot.editMessageText(
-        `❌ Error generando links de invitación. Por favor, intenta nuevamente más tarde.`,
-        { chat_id: chatId, message_id: loadingMessage.message_id }
+        `❌ Error generando links de invitación para grupos premium. Por favor, intenta nuevamente más tarde.\n\n` +
+        `*Grupo Gratuito disponible:*\n\n` +
+        `🎉 *Comunidad de Traders*\n` +
+        `🔗 [Unirse al grupo gratuito](https://t.me/lozanonahuelcomunidad/)`,
+        { 
+          chat_id: chatId, 
+          message_id: loadingMessage.message_id,
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false
+        }
       );
       return;
     }
 
-    message += `*Grupos disponibles:*\n\n`;
-
+    // Agregar grupos premium si hay
     for (const invite of inviteLinks) {
       message += `${invite.emoji} *${invite.name}*\n`;
       message += `🔗 [Unirse al grupo](${invite.link})\n\n`;
     }
 
-    message += `⏱️ *Importante:*\n`;
-    message += `• Los links expiran en 24 horas\n`;
-    message += `• Cada link solo puede usarse 1 vez\n`;
-    message += `• Si expira, usa /grupos para generar nuevos links\n\n`;
+    if (inviteLinks.length > 0) {
+      message += `⏱️ *Importante (grupos premium):*\n`;
+      message += `• Los links expiran en 24 horas\n`;
+      message += `• Cada link solo puede usarse 1 vez\n`;
+      message += `• Si expira, usa /grupos para generar nuevos links\n\n`;
+    }
     message += `💡 Haz clic en los links para unirte a los grupos.`;
 
     // Editar el mensaje de carga con los resultados

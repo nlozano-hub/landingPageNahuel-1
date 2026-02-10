@@ -61,13 +61,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'CashFlow': 'Cash Flow'
     };
 
-    // Obtener precio del servicio
-    const priceKey = `${serviceStr.toLowerCase()}Price` as keyof typeof pricing;
-    const amount = (pricing as any)[priceKey] || 0;
-    const currency = pricing.currency || 'ARS';
+    // ✅ CORREGIDO: Obtener precio del servicio usando la estructura correcta del modelo Pricing
+    let amount = 0;
+    let currency = 'ARS';
+    
+    if (serviceStr === 'TraderCall') {
+      const monthlyPrice = (pricing as any).alertas?.traderCall?.monthly;
+      amount = monthlyPrice ? Number(monthlyPrice) : 0;
+      currency = (pricing as any).alertas?.traderCall?.currency || 'ARS';
+      
+      console.log('💰 [TELEGRAM RENEWAL] Obteniendo precio TraderCall:', {
+        rawValue: monthlyPrice,
+        convertedAmount: amount,
+        type: typeof monthlyPrice,
+        currency,
+        pricingData: JSON.stringify((pricing as any).alertas?.traderCall)
+      });
+    } else if (serviceStr === 'SmartMoney') {
+      const monthlyPrice = (pricing as any).alertas?.smartMoney?.monthly;
+      amount = monthlyPrice ? Number(monthlyPrice) : 0;
+      currency = (pricing as any).alertas?.smartMoney?.currency || 'ARS';
+      
+      console.log('💰 [TELEGRAM RENEWAL] Obteniendo precio SmartMoney:', {
+        rawValue: monthlyPrice,
+        convertedAmount: amount,
+        type: typeof monthlyPrice,
+        currency,
+        pricingData: JSON.stringify((pricing as any).alertas?.smartMoney)
+      });
+    } else if (serviceStr === 'CashFlow') {
+      // Para CashFlow, usar un precio por defecto o agregar al modelo Pricing si es necesario
+      amount = 99;
+      currency = 'ARS';
+    }
 
-    if (!amount || amount <= 0) {
-      return res.status(500).json({ error: `No se encontró precio para ${serviceNames[serviceStr]}` });
+    // ✅ VALIDACIÓN: Asegurar que el amount sea un número válido y positivo
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      console.error('❌ [TELEGRAM RENEWAL] Precio inválido obtenido:', {
+        service: serviceStr,
+        amount,
+        rawPricing: JSON.stringify(pricing, null, 2)
+      });
+      return res.status(500).json({ 
+        error: `No se encontró precio para ${serviceNames[serviceStr]}`,
+        details: 'El precio no está configurado en el sistema. Contacta al administrador.'
+      });
     }
 
     // Crear registro de pago pendiente
