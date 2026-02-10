@@ -24,7 +24,7 @@ export default function IndicatorSuccessPage() {
       'KoncordePro': 'https://docs.google.com/forms/d/e/1FAIpQLScOC1eiN_ArMYaxBrs1oG-Cf0Df-J2Ml80M7hVCBAu2AuSpQA/viewform',
       'PackIndicadores': 'https://forms.gle/LcZo6EgFZfSWMdnT8',
       'MediasMovilesAutomaticas': 'https://docs.google.com/forms/d/13mSorbjo32VCkDqgU09YPOa1UpzB7G3RPxTK3-DUa0M/viewform' // Formulario original
-    };
+    }; 
     return formUrls[service] || formUrls['MediasMovilesAutomaticas'];  
   }; 
 
