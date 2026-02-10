@@ -118,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       amount: Number(amount), // ✅ Asegurar que sea número
       currency,
       status: 'pending',
-      externalReference: `renewal_telegram_${serviceStr}_${user._id}_${Date.now()}`,
+      externalReference: `renewal_${serviceStr}_${user._id}_${Date.now()}`,
       paymentMethodId: '',
       paymentTypeId: '',
       installments: 1,
