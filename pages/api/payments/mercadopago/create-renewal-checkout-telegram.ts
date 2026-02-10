@@ -109,20 +109,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Crear registro de pago pendiente
+    const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días desde ahora (se ajustará en el webhook)
+    
     const payment = new Payment({
-      userEmail: user.email,
       userId: user._id,
+      userEmail: user.email,
       service: serviceStr,
-      amount,
+      amount: Number(amount), // ✅ Asegurar que sea número
       currency,
       status: 'pending',
+      externalReference: `renewal_telegram_${serviceStr}_${user._id}_${Date.now()}`,
+      paymentMethodId: '',
+      paymentTypeId: '',
+      installments: 1,
       transactionDate: new Date(),
-      expiryDate: new Date(), // Se actualizará cuando se apruebe el pago
-      source: 'telegram-renewal',
+      expiryDate,
       metadata: {
         isRenewal: true,
         telegramUserId: telegramUserIdNum,
-        existingExpiry: existingActiveSub?.expiryDate
+        previousExpiry: existingActiveSub?.expiryDate || null
       }
     });
 
