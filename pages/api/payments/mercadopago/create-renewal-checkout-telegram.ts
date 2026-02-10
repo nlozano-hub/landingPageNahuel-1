@@ -4,6 +4,7 @@ import User from '@/models/User';
 import Payment from '@/models/Payment';
 import Pricing from '@/models/Pricing';
 import { createMercadoPagoPreference } from '@/lib/mercadopago';
+import { isUserBlocked } from '@/lib/subscriptionBlockService';
 
 /**
  * API para crear checkout de renovación de suscripción desde Telegram
@@ -34,6 +35,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await User.findOne({ telegramUserId: telegramUserIdNum });
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // ✅ Verificar si el usuario está bloqueado para suscripciones (igual que en web)
+    const blocked = await isUserBlocked(user);
+    if (blocked) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Tu cuenta no puede contratar servicios. Contacta al soporte para más información.' 
+      });
     }
 
     // Verificar si tiene suscripción activa (para confirmación)
@@ -103,10 +113,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         rawPricing: JSON.stringify(pricing, null, 2)
       });
       return res.status(500).json({ 
-        error: `No se encontró precio para ${serviceNames[serviceStr]}`,
-        details: 'El precio no está configurado en el sistema. Contacta al administrador.'
+        success: false,
+        error: `No se pudo obtener un precio válido para el servicio ${serviceStr}. Por favor, contacta al administrador.`
       });
     }
+
+    // ✅ VALIDACIÓN: Asegurar que la moneda sea ARS (pesos argentinos)
+    if (currency !== 'ARS') {
+      console.warn('⚠️ [TELEGRAM RENEWAL] Moneda no es ARS, forzando ARS:', currency);
+      currency = 'ARS';
+    }
+
+    console.log('✅ [TELEGRAM RENEWAL] Precio final para renovación:', {
+      service: serviceStr,
+      amount: Number(amount),
+      currency,
+      formattedAmount: new Intl.NumberFormat('es-AR', { 
+        style: 'currency', 
+        currency: 'ARS' 
+      }).format(Number(amount))
+    });
 
     // Crear registro de pago pendiente
     const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días desde ahora (se ajustará en el webhook)
