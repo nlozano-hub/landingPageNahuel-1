@@ -373,7 +373,7 @@
 
 .tableHeader {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 2fr 1fr 1fr 1fr 1fr;
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-secondary);
@@ -381,15 +381,17 @@
   font-weight: 600;
   color: var(--text-primary);
   font-size: 0.875rem;
+  align-items: center;
 }
 
 .tableRow {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 2fr 1fr 1fr 1fr 1fr;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.2s ease;
+  align-items: center;
 }
 
 .tableRow:hover {
@@ -400,6 +402,8 @@
   display: flex;
   align-items: center;
   min-height: 60px;
+  overflow: hidden;
+  word-wrap: break-word;
 }
 
 .userInfo {
@@ -478,6 +482,7 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .subscriptionBadge {
@@ -540,6 +545,9 @@
 .actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
 }
 
 .actionBtn {
@@ -783,6 +791,19 @@
 }
 
 /* Responsive */
+@media (max-width: 1400px) {
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 2fr 1fr 2fr 1fr 1fr 1fr 1fr;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .tableCell {
+    min-height: 50px;
+  }
+}
+
 @media (max-width: 1200px) {
   .filters {
     grid-template-columns: repeat(2, 1fr);
@@ -801,6 +822,13 @@
   
   .userInfo {
     justify-content: flex-start;
+  }
+  
+  .tableHeader .tableCell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 0.5rem;
+    color: var(--text-secondary);
   }
 }
 

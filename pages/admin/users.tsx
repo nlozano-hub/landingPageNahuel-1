@@ -677,13 +677,13 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
               ) : (
                 <div className={styles.table}>
                   <div className={styles.tableHeader}>
-                    <div className={styles.tableCell}>Usuario</div>
-                    <div className={styles.tableCell}>Rol</div>
-                    <div className={styles.tableCell}>Suscripciones</div>
-                    <div className={styles.tableCell}>Estado</div>
-                    <div className={styles.tableCell}>Ingresos</div>
-                    <div className={styles.tableCell}>Último Login</div>
-                    <div className={styles.tableCell}>Acciones</div>
+                    <div className={styles.tableCell} data-label="Usuario">Usuario</div>
+                    <div className={styles.tableCell} data-label="Rol">Rol</div>
+                    <div className={styles.tableCell} data-label="Suscripciones">Suscripciones</div>
+                    <div className={styles.tableCell} data-label="Estado">Estado</div>
+                    <div className={styles.tableCell} data-label="Ingresos">Ingresos</div>
+                    <div className={styles.tableCell} data-label="Último Login">Último Login</div>
+                    <div className={styles.tableCell} data-label="Acciones">Acciones</div>
                   </div>
                   
                   {users.map((user) => (
@@ -694,7 +694,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Usuario">
                         <div className={styles.userInfo}>
                           <UserAvatar user={user} />
                           <div>
@@ -704,7 +704,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                         </div>
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Rol">
                         <select
                           value={user.role}
                           onChange={(e) => updateUserRole(user._id, e.target.value)}
@@ -716,7 +716,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                         </select>
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Suscripciones">
                         <div className={styles.subscriptions}>
                           {user.subscriptions && user.subscriptions.length > 0 ? (
                             user.subscriptions
@@ -759,7 +759,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                         </div>
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Estado">
                         {user.subscriptionBlocked ? (
                           <span className={styles.blockedBadge} style={{ 
                             backgroundColor: '#ef4444', 
@@ -767,7 +767,8 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                             padding: '4px 8px',
                             borderRadius: '4px',
                             fontSize: '0.75rem',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            whiteSpace: 'nowrap'
                           }}>
                             Bloqueado
                           </span>
@@ -778,20 +779,21 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                             padding: '4px 8px',
                             borderRadius: '4px',
                             fontSize: '0.75rem',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            whiteSpace: 'nowrap'
                           }}>
                             Activo
                           </span>
                         )}
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Ingresos">
                         <span className={styles.revenue}>
                           ${(user.ingresoMensual || 0).toLocaleString()}/mes
                         </span>
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Último Login">
                         <span className={styles.lastLogin}>
                           {user.lastLogin 
                             ? new Date(user.lastLogin).toLocaleDateString('es-ES')
@@ -800,7 +802,7 @@ export default function AdminUsersPage({ user }: AdminUsersProps) {
                         </span>
                       </div>
                       
-                      <div className={styles.tableCell}>
+                      <div className={styles.tableCell} data-label="Acciones">
                         <div className={styles.actions}>
                           <button
                             onClick={() => {
