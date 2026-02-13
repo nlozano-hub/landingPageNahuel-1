@@ -578,68 +578,34 @@ export default async function handler(
                 console.log(`   ✅ Notificación de Telegram enviada a ${user.email} con motivo específico`);
               } catch (msgError: any) {
                 console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo notificar por Telegram a ${user.email}: ${msgError.message}`);
-                // Enviar email como respaldo
+                // DESHABILITADO: Solo notificaciones por Telegram, no email
+                // // Enviar email como respaldo
               }
               
-              // ✅ NUEVO: Enviar email de notificación explicando la expulsión
-              // Usuario tiene Telegram vinculado pero suscripción expirada
-              try {
-                const { sendEmail } = await import('@/lib/emailService');
-                const serviceName = service === 'TraderCall' ? 'Trader Call' : service === 'SmartMoney' ? 'Smart Money' : service;
-                const renewalUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/alertas/${service.toLowerCase().replace('call', 'call')}`;
-                const profileUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`;
-                
-                // Motivo: Suscripción expirada (siempre es este caso porque ya verificamos que no tiene suscripción activa)
-                const motivoEmail = `Tu suscripción a ${serviceName} ha expirado.`;
-                const solucionEmail = `Para seguir recibiendo alertas, renueva tu suscripción: <br><br><a href="${renewalUrl}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Renovar Suscripción</a><br><br>Una vez renovada, recibirás un nuevo link de invitación automáticamente para volver a unirte al canal de Telegram.`;
-                
-                const emailHtml = `
-                  <!DOCTYPE html>
-                  <html lang="es">
-                  <head>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Has sido removido del canal de ${serviceName}</title>
-                  </head>
-                  <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f8fafc;">
-                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%); color: white; padding: 30px 25px; text-align: center;">
-                      <h1 style="margin: 0; font-size: 24px; font-weight: 700;">⚠️ Has sido removido del canal de ${serviceName}</h1>
-                    </div>
-                    <div style="padding: 30px 25px; background: white;">
-                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                        Hola ${user.name || user.email},
-                      </p>
-                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                        <strong>${motivoEmail}</strong> Por esta razón, has sido removido del canal de Telegram de ${serviceName}.
-                      </p>
-                      <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                        <p style="margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;">
-                          ⚠️ Ya no recibirás alertas de ${serviceName} hasta que renueves tu suscripción.
-                        </p>
-                      </div>
-                      <h2 style="margin: 30px 0 15px 0; font-size: 18px; color: #0f172a;">¿Qué hacer ahora?</h2>
-                      <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">${solucionEmail}</p>
-                      <p style="margin: 30px 0 0 0; font-size: 14px; color: #64748b;">
-                        💡 ¿Necesitas ayuda?<br>Contacta a soporte desde tu perfil: <a href="${profileUrl}" style="color: #3b82f6;">${profileUrl}</a>
-                      </p>
-                      <p style="margin: 20px 0 0 0; font-size: 14px; color: #64748b;">
-                        ¡Gracias por ser parte de nuestra comunidad! 🚀
-                      </p>
-                    </div>
-                  </body>
-                  </html>
-                `;
-                
-                await sendEmail({
-                  to: user.email,
-                  subject: `⚠️ Has sido removido del canal de ${serviceName}`,
-                  html: emailHtml
-                });
-                
-                console.log(`   ✅ Email de notificación enviado a ${user.email}${telegramNotificationSent ? ' (además del mensaje de Telegram)' : ' (como respaldo, Telegram falló)'}`);
-              } catch (emailError: any) {
-                console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo enviar email a ${user.email}: ${emailError.message}`);
-              }
+              // DESHABILITADO: Solo notificaciones por Telegram. No enviamos email para flujos de Telegram.
+              // // ✅ NUEVO: Enviar email de notificación explicando la expulsión
+              // // Usuario tiene Telegram vinculado pero suscripción expirada
+              // try {
+              //   const { sendEmail } = await import('@/lib/emailService');
+              //   const serviceName = service === 'TraderCall' ? 'Trader Call' : service === 'SmartMoney' ? 'Smart Money' : service;
+              //   const renewalUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/alertas/${service.toLowerCase().replace('call', 'call')}`;
+              //   const profileUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`;
+              //
+              //   const motivoEmail = `Tu suscripción a ${serviceName} ha expirado.`;
+              //   const solucionEmail = `Para seguir recibiendo alertas, renueva tu suscripción: <br><br><a href="${renewalUrl}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Renovar Suscripción</a><br><br>Una vez renovada, recibirás un nuevo link de invitación automáticamente para volver a unirte al canal de Telegram.`;
+              //
+              //   const emailHtml = `...`;
+              //
+              //   await sendEmail({
+              //     to: user.email,
+              //     subject: `⚠️ Has sido removido del canal de ${serviceName}`,
+              //     html: emailHtml
+              //   });
+              //
+              //   console.log(`   ✅ Email de notificación enviado a ${user.email}...`);
+              // } catch (emailError: any) {
+              //   console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo enviar email a ${user.email}: ${emailError.message}`);
+              // }
             } catch (banError: any) {
               // ✅ MEJORADO: Manejar error específico de administrador
               if (banError.message?.includes('user is an administrator') || 
@@ -766,87 +732,24 @@ export default async function handler(
         }
       }
       
-      // Si tiene suscripción activa pero no tiene Telegram vinculado, enviar advertencia
-      // ✅ En modo dryRun NO enviar el email (evitar spamear durante simulaciones)
+      // Si tiene suscripción activa pero no tiene Telegram vinculado
+      // DESHABILITADO: Solo notificaciones por Telegram. No enviamos email para flujos de Telegram.
+      // (Estos usuarios no tienen Telegram vinculado, por lo que no podemos notificarlos por ningún canal)
       if (servicesWithActiveSubscription.length > 0 && !dryRun) {
         console.log(`⚠️ [TELEGRAM EXPULSION] Usuario ${user.email} tiene suscripción activa en ${servicesWithActiveSubscription.join(', ')} pero NO tiene Telegram vinculado`);
-        
-        try {
-          const { sendEmail } = await import('@/lib/emailService');
-          const profileUrl = `${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/perfil`;
-          
-          const servicesList = servicesWithActiveSubscription.map(s => 
-            s === 'TraderCall' ? 'Trader Call' : 'Smart Money'
-          ).join(' y ');
-          
-          const emailHtml = `
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>⚠️ Acción Requerida: Vincular Telegram</title>
-            </head>
-            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f8fafc;">
-              <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%); color: white; padding: 30px 25px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700;">⚠️ Acción Requerida: Vincular Telegram</h1>
-              </div>
-              <div style="padding: 30px 25px; background: white;">
-                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                  Hola ${user.name || user.email},
-                </p>
-                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                  Detectamos que tienes una <strong>suscripción activa</strong> a <strong>${servicesList}</strong>, pero <strong>no tienes tu cuenta de Telegram vinculada</strong>.
-                </p>
-                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                  Para recibir las alertas y mantener tu acceso a los canales de Telegram, necesitas vincular tu cuenta de Telegram.
-                </p>
-                <h2 style="margin: 30px 0 15px 0; font-size: 18px; color: #0f172a;">¿Qué hacer ahora?</h2>
-                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                  <strong>1️⃣ Vincular tu cuenta de Telegram:</strong><br>
-                  <a href="${profileUrl}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">Vincular Telegram desde tu perfil →</a>
-                </p>
-                <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #334155;">
-                  <strong>2️⃣ Una vez vinculado:</strong><br>
-                  Genera un nuevo link de invitación desde tu perfil para unirte a los canales de Telegram.
-                </p>
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                  <p style="margin: 0; font-size: 14px; color: #92400e; font-weight: 600;">
-                    ⚠️ Importante: Si no vinculas tu cuenta de Telegram, perderás el acceso a los canales y no recibirás las alertas.
-                  </p>
-                </div>
-                <p style="margin: 30px 0 0 0; font-size: 14px; color: #64748b;">
-                  💡 ¿Necesitas ayuda?<br>Contacta a soporte desde tu perfil: <a href="${profileUrl}" style="color: #3b82f6;">${profileUrl}</a>
-                </p>
-                <p style="margin: 20px 0 0 0; font-size: 14px; color: #64748b;">
-                  ¡Gracias por ser parte de nuestra comunidad! 🚀
-                </p>
-              </div>
-            </body>
-            </html>
-          `;
-          
-          await sendEmail({
-            to: user.email,
-            subject: `⚠️ Acción Requerida: Vincular Telegram para ${servicesList}`,
-            html: emailHtml
+        // Email deshabilitado - solo notificaciones por Telegram
+        // // try { await sendEmail(...); } catch (emailError) { ... }
+
+        // Agregar a resultados en modo verbose
+        if (verboseMode) {
+          results.push({
+            userId: user._id.toString(),
+            email: user.email,
+            telegramUserId: 0, // No tiene Telegram vinculado
+            service: servicesWithActiveSubscription.join(', '),
+            success: true,
+            error: `Usuario tiene suscripción activa pero NO tiene Telegram vinculado`
           });
-          
-          console.log(`   ✅ Email de advertencia enviado a ${user.email} (sin Telegram vinculado)`);
-          
-          // Agregar a resultados en modo verbose
-          if (verboseMode) {
-            results.push({
-              userId: user._id.toString(),
-              email: user.email,
-              telegramUserId: 0, // No tiene Telegram vinculado
-              service: servicesWithActiveSubscription.join(', '),
-              success: true,
-              error: `Usuario tiene suscripción activa pero NO tiene Telegram vinculado - Email de advertencia enviado`
-            });
-          }
-        } catch (emailError: any) {
-          console.log(`   ⚠️ [TELEGRAM EXPULSION] No se pudo enviar email de advertencia a ${user.email}: ${emailError.message}`);
         }
       }
     }
