@@ -81,21 +81,10 @@ export default async function handler(
 
     await linkCode.save();
 
-    // Obtener información del bot para incluir en el email
-    let botUsername = 'lozanoNahuel_bot'; // Default
-    try {
-      const botInfoResponse = await fetch(`${process.env.NEXTAUTH_URL || 'https://lozanonahuel.com'}/api/telegram/bot-info`);
-      if (botInfoResponse.ok) {
-        const botInfo = await botInfoResponse.json();
-        if (botInfo.success && botInfo.username) {
-          botUsername = botInfo.username;
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ [TELEGRAM LINK] No se pudo obtener info del bot para el email:', error);
-    }
+    // Usar variable de entorno o default - evita fetch HTTP que agregaba 300-1500ms de latencia
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'lozanoNahuel_bot';
 
-    // Enviar email con el código
+    // Enviar email con el código (sin esperar fetch a bot-info)
     const emailHtml = `
       <!DOCTYPE html>
       <html>
