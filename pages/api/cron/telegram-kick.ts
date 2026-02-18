@@ -237,13 +237,15 @@ export default async function handler(
         {
           arrayFilters: [
             {
-              'elem.service': service,
-              'elem.kickedAt': null,
-              'elem.kickAttempts': { $lt: 5 },
-              $or: [
-                { 'elem.nextKickAttemptAt': null },
-                { 'elem.nextKickAttemptAt': { $lte: now } }
-              ]
+              'elem': {
+                service,
+                kickedAt: null,
+                kickAttempts: { $lt: 5 },
+                $or: [
+                  { nextKickAttemptAt: null },
+                  { nextKickAttemptAt: { $lte: now } }
+                ]
+              }
             }
           ]
         }
@@ -265,7 +267,7 @@ export default async function handler(
       await User.updateOne(
         { _id: userId, 'telegramKickState.service': service },
         { $set },
-        { arrayFilters: [{ 'elem.service': service }] }
+        { arrayFilters: [{ elem: { service } }] }
       );
     };
 
