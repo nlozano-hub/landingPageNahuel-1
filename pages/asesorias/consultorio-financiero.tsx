@@ -594,16 +594,13 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
 
       <Navbar />
 
-      {/* ComingSoon solo visible para usuarios NO admin */}
-      {!isAdmin && (
-        <ComingSoon 
-          title="Próximamente"
-          message="Estamos trabajando en esta sección. Muy pronto estará disponible."
-        />
-      )}
+      <ComingSoon 
+        title="Próximamente"
+        message="Estamos trabajando en esta sección. Muy pronto estará disponible."
+      />
 
-      {/* Contenido visible solo para admin */}
-      {isAdmin && (
+      {/* Contenido oculto temporalmente - descomentar para reactivar */}
+      {false && isAdmin && (
       <main className={styles.main}>
         {/* Hero Section */}
         <section className={styles.heroSection}>
@@ -867,7 +864,7 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
                       {pricingLoading ? (
                         'Cargando precio...'
                       ) : pricing ? (
-                        `$${pricing.asesorias.consultorioFinanciero.price.toLocaleString('es-AR')} ARS`
+                        `$${(pricing?.asesorias?.consultorioFinanciero?.price ?? 50000).toLocaleString('es-AR')} ARS`
                       ) : (
                         '$50.000 ARS'
                       )}
@@ -1107,7 +1104,7 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
                           {pricingLoading ? (
                             'Cargando precio...'
                           ) : pricing ? (
-                            `$${pricing.asesorias.consultorioFinanciero.price.toLocaleString('es-AR')} ARS`
+                            `$${(pricing?.asesorias?.consultorioFinanciero?.price ?? 50000).toLocaleString('es-AR')} ARS`
                           ) : (
                             '$50.000 ARS'
                           )}

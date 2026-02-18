@@ -619,8 +619,7 @@ export default function Home({ session: serverSession, siteConfig, entrenamiento
       href: '/entrenamientos/zero2trader',
       external: false,
       separator: false,
-      rocketIcon: false,
-      proximamente: true
+      rocketIcon: false
     },
     {
       id: 'consultorio-financiero',

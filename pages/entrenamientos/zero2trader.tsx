@@ -8,7 +8,6 @@ import { generateCircularAvatarDataURL } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Carousel from '@/components/Carousel';
-import ComingSoon from '@/components/ComingSoon';
 import TrainingRoadmap from '@/components/TrainingRoadmap';
 import SwingTradingMonthlyCalendar from '@/components/swing-trading/SwingTradingMonthlyCalendar';
 import SwingTradingFAQ from '@/components/SwingTradingFAQ';
@@ -910,14 +909,6 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
 
       <Navbar />
       
-      {!isAdmin && (
-        <ComingSoon 
-          title="Próximamente"
-          message="Estamos trabajando en esta sección. Muy pronto estará disponible."
-        />
-      )}
-      
-      {isAdmin && (
       <main className={styles.main}>
         {/* Hero Section con Video Explicativo */}
         <section className={styles.heroSection}>
@@ -1595,7 +1586,6 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
           </div>
         </section>
       </main>
-      )}
 
       <Footer />
 

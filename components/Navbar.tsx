@@ -114,7 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
       label: 'Asesorías',
       href: '/asesorias',
       dropdown: [
-        { label: 'Consultorio Financiero', href: '/asesorias/consultorio-financiero' },
+        { label: 'Consultorio Financiero', href: '/asesorias/consultorio-financiero', comingSoon: true },
       ],
     },
     {
@@ -343,13 +343,23 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
                         }}
                       >
                         {item.dropdown.map((dropdownItem) => (
-                          <Link
-                            key={dropdownItem.label}
-                            href={dropdownItem.href}
-                            className={styles.dropdownItem}
-                          >
-                            {dropdownItem.label}
-                          </Link>
+                          (dropdownItem as { comingSoon?: boolean }).comingSoon ? (
+                            <span
+                              key={dropdownItem.label}
+                              className={`${styles.dropdownItem} ${styles.dropdownItemComingSoon}`}
+                            >
+                              {dropdownItem.label}
+                              <span className={styles.comingSoonBadge}>Próximamente</span>
+                            </span>
+                          ) : (
+                            <Link
+                              key={dropdownItem.label}
+                              href={dropdownItem.href}
+                              className={styles.dropdownItem}
+                            >
+                              {dropdownItem.label}
+                            </Link>
+                          )
                         ))}
                       </div>
                     )}
@@ -542,17 +552,27 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
                   </div>
                   
                   {/* Mobile Dropdown */}
-                  {item.dropdown && openDropdown === `mobile-${item.label}` && (
+                    {item.dropdown && openDropdown === `mobile-${item.label}` && (
                     <div className={styles.mobileDropdown}>
                       {item.dropdown.map((dropdownItem) => (
-                        <Link
-                          key={dropdownItem.label}
-                          href={dropdownItem.href}
-                          className={styles.mobileDropdownItem}
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          {dropdownItem.label}
-                        </Link>
+                        (dropdownItem as { comingSoon?: boolean }).comingSoon ? (
+                          <span
+                            key={dropdownItem.label}
+                            className={`${styles.mobileDropdownItem} ${styles.dropdownItemComingSoon}`}
+                          >
+                            {dropdownItem.label}
+                            <span className={styles.comingSoonBadge}>Próximamente</span>
+                          </span>
+                        ) : (
+                          <Link
+                            key={dropdownItem.label}
+                            href={dropdownItem.href}
+                            className={styles.mobileDropdownItem}
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            {dropdownItem.label}
+                          </Link>
+                        )
                       ))}
                     </div>
                   )}
