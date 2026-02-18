@@ -127,6 +127,56 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Envía mensaje al usuario explicando que fue expulsado por suscripción vencida.
+ * No lanza: fallos se ignoran para no bloquear el flujo del cron.
+ */
+export async function sendKickNotification(
+  telegramUserId: number,
+  service: 'TraderCall' | 'SmartMoney',
+  botToken: string
+): Promise<void> {
+  const baseUrl = `https://api.telegram.org/bot${botToken}`;
+  const serviceName = service === 'TraderCall' ? 'Trader Call' : 'Smart Money';
+  const alertasPath = service === 'TraderCall' ? 'trader-call' : 'smart-money';
+  const baseUrlSite = process.env.NEXTAUTH_URL || 'https://lozanonahuel.com';
+
+  const motivoMensaje = `Tu suscripción a *${serviceName}* ha *expirado*.`;
+  const solucionMensaje =
+    `Para seguir recibiendo alertas, renueva tu suscripción en:\n` +
+    `🔗 ${baseUrlSite}/alertas/${alertasPath}\n\n` +
+    `Una vez renovada, podrás gestionar un nuevo link de invitación.`;
+
+  const text =
+    `⚠️ *Has sido removido del canal de ${serviceName}*\n\n` +
+    `${motivoMensaje}-\n\n` +
+    `*¿Qué hacer ahora?*\n\n` +
+    `${solucionMensaje}\n\n` +
+    `💡 *¿Necesitas ayuda?*\n` +
+    `Contacta a soporte: soporte@lozanonahuel.com\n\n` +
+    `¡Gracias por ser parte de nuestra comunidad! 🚀`;
+
+  try {
+    const res = await fetch(`${baseUrl}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: telegramUserId,
+        text,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      console.warn(
+        `[telegram] No se pudo notificar kick a ${telegramUserId}: ${data.description || 'Unknown'}`
+      );
+    }
+  } catch (err: any) {
+    console.warn(`[telegram] Error enviando notificación de kick: ${err?.message || 'Unknown'}`);
+  }
+}
+
+/**
  * Verifica si un error es "recuperable" (reintentar en próxima corrida).
  */
 export function isRetryableError(error: string): boolean {

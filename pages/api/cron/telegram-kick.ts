@@ -1,6 +1,6 @@
 /**
  * Cron batch para expulsar usuarios de canales Telegram (suscripción vencida).
- * Idempotente, claim atómico, backoff 429, corte por tiempo ~25s.
+ * Idempotente, claim atómico, backoff para 429, notificación por mensaje directo.
  *
  * Auth: CRON_AUTH_MODE=vercel|secret|both
  *   - vercel: solo x-vercel-cron
@@ -12,7 +12,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import { telegramKickUser } from '@/lib/telegram';
+import { telegramKickUser, sendKickNotification } from '@/lib/telegram';
 
 const BATCH_SIZE = 50;
 const CONCURRENCY = 4;
@@ -30,6 +30,7 @@ interface KickTask {
   userId: mongoose.Types.ObjectId;
   service: Service;
   expiresAt: Date;
+  email?: string;
 }
 
 function hasActiveSubscription(user: any, service: Service, now: Date): boolean {
@@ -119,10 +120,12 @@ async function runWithConcurrency<T, R>(
     }
   }
 
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () =>
+    worker()
+  );
+  await Promise.all(workers);
   return results;
 }
-
 
 export default async function handler(
   req: NextApiRequest,
@@ -139,7 +142,10 @@ export default async function handler(
   const startTime = Date.now();
 
   try {
-    if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_ENABLED !== 'true') {
+    if (
+      !process.env.TELEGRAM_BOT_TOKEN ||
+      process.env.TELEGRAM_ENABLED !== 'true'
+    ) {
       return res.status(200).json({
         processed: 0,
         success: 0,
@@ -175,7 +181,8 @@ export default async function handler(
         tasks.push({
           userId: user._id as mongoose.Types.ObjectId,
           service,
-          expiresAt: expiresAt || now
+          expiresAt: expiresAt || now,
+          email: user.email
         });
       }
     }
@@ -183,7 +190,10 @@ export default async function handler(
     tasks.sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime());
     const batch = tasks.slice(0, BATCH_SIZE);
 
-    const ensureKickEntry = async (userId: mongoose.Types.ObjectId, service: Service) => {
+    const ensureKickEntry = async (
+      userId: mongoose.Types.ObjectId,
+      service: Service
+    ) => {
       await User.updateOne(
         {
           _id: userId,
@@ -273,9 +283,9 @@ export default async function handler(
       const claimed = await atomicClaim(userId, service);
       if (!claimed) return false;
 
-      const doc = await User.findById(userId)
+      const doc = (await User.findById(userId)
         .select('telegramUserId telegramChannelAccess')
-        .lean() as { telegramUserId?: number } | null;
+        .lean()) as { telegramUserId?: number } | null;
       if (!doc || !doc.telegramUserId) return false;
 
       const result = await telegramKickUser(
@@ -298,6 +308,14 @@ export default async function handler(
             }
           }
         );
+
+        // Notificar al usuario por mensaje directo (suscripción vencida)
+        await sendKickNotification(
+          doc.telegramUserId,
+          service,
+          process.env.TELEGRAM_BOT_TOKEN!
+        );
+
         return true;
       }
 
@@ -336,7 +354,6 @@ export default async function handler(
     const successCount = results.filter(Boolean).length;
     const failCount = results.length - successCount;
     const elapsedSeconds = (Date.now() - startTime) / 1000;
-
     const remaining = tasks.length - batch.length;
 
     const logPayload = {
