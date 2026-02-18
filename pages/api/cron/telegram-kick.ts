@@ -89,7 +89,7 @@ function getEarliestExpiry(user: any, service: Service): Date | null {
 
 function isAuthorized(req: NextApiRequest): boolean {
   const mode = (process.env.CRON_AUTH_MODE || 'both').toLowerCase();
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET || process.env.CRON_SECRET_TOKEN;
   if (!cronSecret) return false;
 
   const headerSecret = req.headers['x-cron-secret'] as string;
