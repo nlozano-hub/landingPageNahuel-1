@@ -182,52 +182,49 @@ export default async function handler(
         continue;
       }
 
-      console.log(`🔍 [TELEGRAM EXPULSION] Procesando usuario: ${user.email} (rol: ${user.role})`);
-      console.log(`   - telegramUserId: ${user.telegramUserId}`);
-      console.log(`   - telegramChannelAccess:`, user.telegramChannelAccess && user.telegramChannelAccess.length > 0 
-        ? JSON.stringify(user.telegramChannelAccess, null, 2) 
-        : 'NINGUNO (verificando si está en canales manualmente)');
-      
-      // ✅ DEBUG: Mostrar TODAS las suscripciones (activas e inactivas) para debugging
-      console.log(`   📋 TODAS las suscripciones del usuario:`);
-      if (user.suscripciones && user.suscripciones.length > 0) {
-        console.log(`      - suscripciones (legacy):`, JSON.stringify(user.suscripciones.map((s: any) => ({
-          servicio: s.servicio,
-          activa: s.activa,
-          fechaVencimiento: s.fechaVencimiento,
-          fechaVencimientoDate: new Date(s.fechaVencimiento),
-          esFutura: new Date(s.fechaVencimiento) > now
-        })), null, 2));
-      } else {
-        console.log(`      - suscripciones (legacy): []`);
+      if (verboseMode) {
+        console.log(`🔍 [TELEGRAM EXPULSION] Procesando usuario: ${user.email} (rol: ${user.role})`);
+        console.log(`   - telegramUserId: ${user.telegramUserId}`);
+        console.log(`   - telegramChannelAccess:`, user.telegramChannelAccess && user.telegramChannelAccess.length > 0 
+          ? JSON.stringify(user.telegramChannelAccess, null, 2) 
+          : 'NINGUNO (verificando si está en canales manualmente)');
+        console.log(`   📋 TODAS las suscripciones del usuario:`);
+        if (user.suscripciones && user.suscripciones.length > 0) {
+          console.log(`      - suscripciones (legacy):`, JSON.stringify(user.suscripciones.map((s: any) => ({
+            servicio: s.servicio,
+            activa: s.activa,
+            fechaVencimiento: s.fechaVencimiento,
+            fechaVencimientoDate: new Date(s.fechaVencimiento),
+            esFutura: new Date(s.fechaVencimiento) > now
+          })), null, 2));
+        } else {
+          console.log(`      - suscripciones (legacy): []`);
+        }
+        if (user.subscriptions && user.subscriptions.length > 0) {
+          console.log(`      - subscriptions (intermedio):`, JSON.stringify(user.subscriptions.map((s: any) => ({
+            tipo: s.tipo,
+            activa: s.activa,
+            fechaFin: s.fechaFin,
+            fechaFinDate: s.fechaFin ? new Date(s.fechaFin) : null,
+            esFutura: s.fechaFin ? new Date(s.fechaFin) > now : false
+          })), null, 2));
+        } else {
+          console.log(`      - subscriptions (intermedio): []`);
+        }
+        if (user.activeSubscriptions && user.activeSubscriptions.length > 0) {
+          console.log(`      - activeSubscriptions (nuevo):`, JSON.stringify(user.activeSubscriptions.map((s: any) => ({
+            service: s.service,
+            isActive: s.isActive,
+            expiryDate: s.expiryDate,
+            expiryDateDate: new Date(s.expiryDate),
+            esFutura: new Date(s.expiryDate) > now,
+            subscriptionType: s.subscriptionType
+          })), null, 2));
+        } else {
+          console.log(`      - activeSubscriptions (nuevo): []`);
+        }
+        console.log(`   🕐 Fecha actual (now): ${now.toISOString()}`);
       }
-      
-      if (user.subscriptions && user.subscriptions.length > 0) {
-        console.log(`      - subscriptions (intermedio):`, JSON.stringify(user.subscriptions.map((s: any) => ({
-          tipo: s.tipo,
-          activa: s.activa,
-          fechaFin: s.fechaFin,
-          fechaFinDate: s.fechaFin ? new Date(s.fechaFin) : null,
-          esFutura: s.fechaFin ? new Date(s.fechaFin) > now : false
-        })), null, 2));
-      } else {
-        console.log(`      - subscriptions (intermedio): []`);
-      }
-      
-      if (user.activeSubscriptions && user.activeSubscriptions.length > 0) {
-        console.log(`      - activeSubscriptions (nuevo):`, JSON.stringify(user.activeSubscriptions.map((s: any) => ({
-          service: s.service,
-          isActive: s.isActive,
-          expiryDate: s.expiryDate,
-          expiryDateDate: new Date(s.expiryDate),
-          esFutura: new Date(s.expiryDate) > now,
-          subscriptionType: s.subscriptionType
-        })), null, 2));
-      } else {
-        console.log(`      - activeSubscriptions (nuevo): []`);
-      }
-      
-      console.log(`   🕐 Fecha actual (now): ${now.toISOString()}`);
 
       // Verificar cada servicio para este usuario
       for (const service of servicesToCheck) {
@@ -298,9 +295,7 @@ export default async function handler(
             const isActive = sub.activa === true;
             const fechaVenc = sub.fechaVencimiento ? new Date(sub.fechaVencimiento) : null;
             const isFuture = fechaVenc ? fechaVenc > now : false;
-            
-            console.log(`      🔍 Verificando suscripción legacy: servicio=${sub.servicio}, activa=${sub.activa}, fechaVenc=${sub.fechaVencimiento}, esFutura=${isFuture}`);
-            
+            if (verboseMode) console.log(`      🔍 Verificando suscripción legacy: servicio=${sub.servicio}, activa=${sub.activa}, fechaVenc=${sub.fechaVencimiento}, esFutura=${isFuture}`);
             return matchesService && isActive && isFuture;
           }
         );
@@ -312,9 +307,7 @@ export default async function handler(
             const isActive = sub.activa === true;
             const fechaFin = sub.fechaFin ? new Date(sub.fechaFin) : null;
             const isFuture = fechaFin ? fechaFin > now : (!sub.fechaFin); // Si no tiene fechaFin, considerar activa
-            
-            console.log(`      🔍 Verificando subscription intermedio: tipo=${sub.tipo}, activa=${sub.activa}, fechaFin=${sub.fechaFin}, esFutura=${isFuture}`);
-            
+            if (verboseMode) console.log(`      🔍 Verificando subscription intermedio: tipo=${sub.tipo}, activa=${sub.activa}, fechaFin=${sub.fechaFin}, esFutura=${isFuture}`);
             return matchesService && isActive && isFuture;
           }
         );
@@ -326,22 +319,22 @@ export default async function handler(
             const isActive = sub.isActive === true;
             const expiryDate = sub.expiryDate ? new Date(sub.expiryDate) : null;
             const isFuture = expiryDate ? expiryDate > now : false;
-            
-            console.log(`      🔍 Verificando activeSubscription: service=${sub.service}, isActive=${sub.isActive}, expiryDate=${sub.expiryDate}, esFutura=${isFuture}, type=${sub.subscriptionType}`);
-            
+            if (verboseMode) console.log(`      🔍 Verificando activeSubscription: service=${sub.service}, isActive=${sub.isActive}, expiryDate=${sub.expiryDate}, esFutura=${isFuture}, type=${sub.subscriptionType}`);
             return matchesService && isActive && isFuture;
           }
         );
         
-        console.log(`   📊 Resultados de verificación para ${service}:`);
-        console.log(`      - suscripcionActiva (legacy):`, suscripcionActiva ? `SÍ (vence: ${suscripcionActiva.fechaVencimiento}, fecha: ${new Date(suscripcionActiva.fechaVencimiento).toISOString()})` : 'NO');
-        console.log(`      - subscriptionActiva (intermedio):`, subscriptionActiva ? `SÍ (vence: ${subscriptionActiva.fechaFin || 'sin fecha'}, fecha: ${subscriptionActiva.fechaFin ? new Date(subscriptionActiva.fechaFin).toISOString() : 'N/A'})` : 'NO');
-        console.log(`      - activeSubscription (nuevo):`, activeSubscription ? `SÍ (vence: ${activeSubscription.expiryDate}, fecha: ${new Date(activeSubscription.expiryDate).toISOString()}, type: ${activeSubscription.subscriptionType})` : 'NO');
+        if (verboseMode) {
+          console.log(`   📊 Resultados de verificación para ${service}:`);
+          console.log(`      - suscripcionActiva (legacy):`, suscripcionActiva ? `SÍ (vence: ${suscripcionActiva.fechaVencimiento})` : 'NO');
+          console.log(`      - subscriptionActiva (intermedio):`, subscriptionActiva ? `SÍ (vence: ${subscriptionActiva.fechaFin || 'sin fecha'})` : 'NO');
+          console.log(`      - activeSubscription (nuevo):`, activeSubscription ? `SÍ (vence: ${activeSubscription.expiryDate})` : 'NO');
+        }
         
         // Si tiene suscripción activa en cualquiera de los tres sistemas, NO expulsar
         const hasActiveSubscription = !!(suscripcionActiva || subscriptionActiva || activeSubscription);
         
-        console.log(`   ✅ Tiene suscripción activa: ${hasActiveSubscription}`);
+        if (verboseMode) console.log(`   ✅ Tiene suscripción activa: ${hasActiveSubscription}`);
 
         // ✅ NUEVO: En modo verbose, agregar información sobre usuarios con suscripción activa
         if (verboseMode && hasActiveSubscription) {

@@ -83,6 +83,15 @@ export interface IUser extends Document {
     joinedAt: Date;
     inviteLink?: string;
   }>;
+  /** Estado de expulsión por servicio (idempotente, para cron batch) */
+  telegramKickState?: Array<{
+    service: 'TraderCall' | 'SmartMoney';
+    kickedAt: Date | null;
+    kickAttempts: number;
+    lastKickAttemptAt: Date | null;
+    kickError: string | null;
+    nextKickAttemptAt?: Date | null;
+  }>;
   // Campos para bloqueo de suscripciones
   subscriptionBlocked?: boolean;
   subscriptionBlockedAt?: Date;
@@ -319,6 +328,32 @@ const UserSchema: Schema = new Schema({
     },
     inviteLink: {
       type: String
+    }
+  }],
+  telegramKickState: [{
+    service: {
+      type: String,
+      enum: ['TraderCall', 'SmartMoney']
+    },
+    kickedAt: {
+      type: Date,
+      default: null
+    },
+    kickAttempts: {
+      type: Number,
+      default: 0
+    },
+    lastKickAttemptAt: {
+      type: Date,
+      default: null
+    },
+    kickError: {
+      type: String,
+      default: null
+    },
+    nextKickAttemptAt: {
+      type: Date,
+      default: null
     }
   }],
   // Campos para bloqueo de suscripciones

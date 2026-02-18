@@ -81,6 +81,34 @@ MOBBEX_API_KEY=tu_mobbex_api_key
 MOBBEX_ACCESS_TOKEN=tu_mobbex_access_token
 ```
 
+#### Cron / Telegram (expulsión batch)
+```
+CRON_SECRET=tu_secret_para_crons
+CRON_AUTH_MODE=both
+TELEGRAM_BOT_TOKEN=tu_token_del_bot
+TELEGRAM_ENABLED=true
+TELEGRAM_CHANNEL_TRADERCALL=-100xxxxxxxxxx
+TELEGRAM_CHANNEL_SMARTMONEY=-100xxxxxxxxxx
+```
+
+**CRON_AUTH_MODE**: `vercel` | `secret` | `both`
+- `vercel`: solo acepta `x-vercel-cron` (Vercel Cron)
+- `secret`: solo acepta header `x-cron-secret`
+- `both`: acepta cualquiera (default)
+
+**Endpoint de expulsión batch** (`/api/cron/telegram-kick`):
+- Procesa usuarios con suscripción vencida en lotes de 50
+- Claim atómico anti doble-procesamiento
+- Backoff persistente para 429 (nextKickAttemptAt)
+- Corte por tiempo ~25s para evitar timeout
+
+```bash
+curl -X POST https://lozanonahuel.com/api/cron/telegram-kick \
+  -H "x-cron-secret: TU_CRON_SECRET"
+```
+
+Responde: `{ processed, success, failed, elapsedSeconds, remaining }`
+
 ## 🏃‍♂️ Ejecutar en desarrollo
 
 ```bash

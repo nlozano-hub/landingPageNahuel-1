@@ -5,8 +5,9 @@
     "pages/api/cron/auto-convert-ranges.ts": { "maxDuration": 300 },
     "pages/api/cron/training-reminders.ts": { "maxDuration": 300 },
     "pages/api/cron/save-portfolio-snapshot.ts": { "maxDuration": 300 },
-    "pages/api/cron/telegram-expulsion.ts": { "maxDuration": 60 },
-    "pages/api/cron/calculate-portfolio-metrics.ts": { "maxDuration": 60 }
+    "pages/api/cron/telegram-expulsion.ts": { "maxDuration": 300 },
+    "pages/api/cron/telegram-kick.ts": { "maxDuration": 300 },
+    "pages/api/cron/calculate-portfolio-metrics.ts": { "maxDuration": 300 }
   },
 "crons": [
     {
