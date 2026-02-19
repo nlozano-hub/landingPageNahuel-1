@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useSession, signIn } from 'next-auth/react';
 import { GetServerSideProps } from 'next';
+import { getGlobalTimezone } from '@/lib/timeConfig';
 import { toast } from 'react-hot-toast';
 import { generateCircularAvatarDataURL } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
@@ -146,13 +147,15 @@ interface TradingPageProps {
     muted?: boolean;
     loop?: boolean;
   };
+  siteTimezone?: string;
 }
 
 const SwingTradingPage: React.FC<TradingPageProps> = ({ 
   training,
   program, 
   testimonials,
-  swingHeroVideo
+  swingHeroVideo,
+  siteTimezone = 'America/Montevideo'
 }) => {
   const { data: session } = useSession();
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -468,17 +471,16 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
               setCountdown({ days: 0, hours: 0, minutes: 0 });
             }
             
-            // Adjust for Argentina timezone (UTC-3)
-            const argentinaDate = new Date(classToShow.date.getTime() - (3 * 60 * 60 * 1000));
-            
-            const formattedDate = argentinaDate.toLocaleDateString('es-ES', {
+            const formattedDate = classToShow.date.toLocaleDateString('es-ES', {
               day: 'numeric',
               month: 'long',
-              year: 'numeric'
+              year: 'numeric',
+              timeZone: siteTimezone
             });
-            const formattedTime = argentinaDate.toLocaleTimeString('es-ES', {
+            const formattedTime = classToShow.date.toLocaleTimeString('es-ES', {
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
+              timeZone: siteTimezone
             });
             setStartDateText(`${formattedDate} a las ${formattedTime} hs`);
           } else if (nextClass) {
@@ -497,7 +499,9 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
         
         const formattedDate = nextTrainingDate.date.toLocaleDateString('es-ES', {
           day: 'numeric',
-          month: 'long'
+          month: 'long',
+          year: 'numeric',
+          timeZone: siteTimezone
         });
         setStartDateText(`${formattedDate} a las ${nextTrainingDate.time} hs`);
       } else if (!currentNextClass) {
@@ -513,7 +517,7 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
     const timer = setInterval(updateCountdown, 60000);
 
     return () => clearInterval(timer);
-  }, [monthlyTrainings, nextTrainingDate]);
+  }, [monthlyTrainings, nextTrainingDate, siteTimezone]);
 
   // Efecto para actualizar la próxima fecha cuando pasa el tiempo
   useEffect(() => {
@@ -675,7 +679,9 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
           if (nextDate) {
             const dateOptions: Intl.DateTimeFormatOptions = { 
               day: 'numeric', 
-              month: 'long' 
+              month: 'long',
+              year: 'numeric',
+              timeZone: siteTimezone
             };
             const formattedDate = nextDate.date.toLocaleDateString('es-ES', dateOptions);
             setStartDateText(`${formattedDate} a las ${nextDate.time} hs`);
@@ -1755,18 +1761,22 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const swingHeroVideo = siteConfig?.trainingVideos?.swingTrading?.heroVideo || null;
     
+    const siteTimezone = getGlobalTimezone();
+
     return {
       props: {
         training: data.data.training,
         program: data.data.program,
         testimonials: data.data.testimonials,
-        swingHeroVideo
+        swingHeroVideo,
+        siteTimezone
       }
     };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
     
     // Datos de fallback en caso de error
+    const siteTimezone = getGlobalTimezone();
     return {
       props: {
         training: {
@@ -1790,7 +1800,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         program: [],
         testimonials: [],
-        swingHeroVideo: null
+        swingHeroVideo: null,
+        siteTimezone
       }
     };
   }

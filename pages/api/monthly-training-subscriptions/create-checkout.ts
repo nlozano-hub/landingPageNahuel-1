@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/googleAuth';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import MonthlyTrainingSubscription from '../../../models/MonthlyTrainingSubscription';
+import MonthlyTraining from '../../../models/MonthlyTraining';
 import Pricing from '../../../models/Pricing';
 import { z } from 'zod';
 import dbConnect from '../../../lib/mongodb';
@@ -58,19 +59,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Verificar si ya existe una suscripción para ese mes/año
-    const existingSubscription = await MonthlyTrainingSubscription.findOne({
+    // Verificar si ya existe una suscripción COMPLETADA para ese mes/año
+    // Solo bloqueamos si el pago fue exitoso. Las suscripciones 'pending' (pago abandonado)
+    // se eliminan más abajo para permitir reintentar.
+    const existingCompletedSubscription = await MonthlyTrainingSubscription.findOne({
       userId: (session as any).user.id,
       trainingType,
       subscriptionMonth,
       subscriptionYear,
-      paymentStatus: { $in: ['pending', 'completed'] }
+      paymentStatus: 'completed'
     });
 
-    if (existingSubscription) {
+    if (existingCompletedSubscription) {
       return res.status(400).json({ 
         error: 'Ya tienes una suscripción para este mes' 
       });
+    }
+
+    // Si hay una suscripción PENDING (pago abandonado anteriormente), eliminarla
+    // para permitir crear un nuevo checkout y no bloquear al usuario
+    const deletedPending = await MonthlyTrainingSubscription.deleteMany({
+      userId: (session as any).user.id,
+      trainingType,
+      subscriptionMonth,
+      subscriptionYear,
+      paymentStatus: 'pending'
+    });
+    if (deletedPending.deletedCount > 0) {
+      console.log('🧹 Eliminada(s) suscripción(es) pendiente(s) anterior(es) para permitir reintento:', deletedPending.deletedCount);
     }
 
     // Verificar disponibilidad de cupos (máximo 15 suscriptores por mes)
@@ -87,37 +103,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Obtener precio desde la base de datos
+    // Obtener precio: prioridad al MonthlyTraining (lo que ve el usuario en el calendario)
+    // y fallback a Pricing (configuración global del dashboard)
     console.log('💰 Obteniendo precio desde la base de datos...');
-    const pricing = await Pricing.findOne().sort({ createdAt: -1 });
-    if (!pricing) {
-      console.log('❌ No se encontró pricing en la base de datos');
-      return res.status(500).json({ error: 'No se pudo obtener el precio' });
-    }
-
-    console.log('📊 Pricing encontrado:', pricing);
-
     let amount = 0;
-    let currency = 'ARS'; // Por defecto ARS
-    
+    let currency = 'ARS';
+
+    // Para SwingTrading: buscar MonthlyTraining del mes/año - es la fuente de verdad
+    // ya que el botón "Inscribirse" muestra el precio del entrenamiento
     if (trainingType === 'SwingTrading') {
-      amount = pricing.entrenamientos?.swingTrading?.price || 0;
-      currency = pricing.entrenamientos?.swingTrading?.currency || pricing.currency || 'ARS';
-    } else if (trainingType === 'DayTrading') {
-      amount = pricing.entrenamientos?.dayTrading?.price || 0;
-      currency = pricing.entrenamientos?.dayTrading?.currency || pricing.currency || 'ARS';
-    } else if (trainingType === 'DowJones') {
-      amount = pricing.entrenamientos?.advanced?.price || 0; // DowJones usa advanced
-      currency = pricing.entrenamientos?.advanced?.currency || pricing.currency || 'ARS';
+      const monthlyTraining = await MonthlyTraining.findOne({
+        month: subscriptionMonth,
+        year: subscriptionYear,
+        status: { $in: ['open', 'full'] }
+      }).lean();
+
+      const trainingPrice = (monthlyTraining as { price?: number })?.price;
+      if (trainingPrice && trainingPrice > 0) {
+        amount = trainingPrice;
+        console.log('📊 Precio desde MonthlyTraining:', amount, 'ARS');
+      }
     }
 
-    console.log('💵 Monto calculado:', amount, 'Currency:', currency);
-    
-    // Si el precio está en USD pero necesitamos ARS, hacer conversión
-    if (currency === 'USD' && pricing.currency === 'ARS') {
-      // Asumir que el precio ya está en ARS pero el campo currency está mal
-      console.log('⚠️ Precio marcado como USD pero base de datos en ARS, usando precio tal como está');
+    // Fallback a Pricing si no hay MonthlyTraining o no tiene precio
+    if (amount <= 0) {
+      const pricing = await Pricing.findOne().sort({ createdAt: -1 });
+      if (!pricing) {
+        console.log('❌ No se encontró pricing en la base de datos');
+        return res.status(500).json({ error: 'No se pudo obtener el precio' });
+      }
+
+      if (trainingType === 'SwingTrading') {
+        amount = pricing.entrenamientos?.swingTrading?.price ?? 0;
+        currency = pricing.entrenamientos?.swingTrading?.currency || pricing.currency || 'ARS';
+      } else if (trainingType === 'DayTrading') {
+        amount = pricing.entrenamientos?.dayTrading?.price ?? 0;
+        currency = pricing.entrenamientos?.dayTrading?.currency || pricing.currency || 'ARS';
+      } else if (trainingType === 'DowJones') {
+        amount = pricing.entrenamientos?.advanced?.price ?? 0;
+        currency = pricing.entrenamientos?.advanced?.currency || pricing.currency || 'ARS';
+      }
+      console.log('📊 Precio desde Pricing (fallback):', amount, currency);
     }
+
+    console.log('💵 Monto final para MercadoPago:', amount, 'Currency:', currency);
 
     if (amount <= 0) {
       console.log('❌ Precio no configurado o es 0');

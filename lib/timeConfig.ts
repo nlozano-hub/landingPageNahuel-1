@@ -1,5 +1,9 @@
+/**
+ * Obtiene la zona horaria para mostrar fechas en el sitio.
+ * Prioridad: GOOGLE_CALENDAR_TIMEZONE > TZ > America/Montevideo
+ */
 export function getGlobalTimezone(): string {
-  return process.env.GOOGLE_CALENDAR_TIMEZONE || 'America/Argentina/Buenos_Aires';
+  return process.env.GOOGLE_CALENDAR_TIMEZONE || normalizeTimezone(process.env.TZ) || 'America/Montevideo';
 }
 
 export function getGlobalReminderHour(): number {
