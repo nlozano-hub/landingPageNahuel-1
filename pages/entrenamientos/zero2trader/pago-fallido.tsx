@@ -1,10 +1,18 @@
 import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowLeft, RefreshCw, Shield } from 'lucide-react';
 import styles from '../../../styles/PaymentFailure.module.css';
+
+/** Formatea valores que pueden ser null/undefined o el string "null" */
+function formatValue(val: string | null | undefined): string {
+  if (val == null || val === '' || String(val).toLowerCase() === 'null') {
+    return '—';
+  }
+  return String(val);
+}
 
 interface PaymentFailureProps {
   collectionId: string | null;
@@ -21,42 +29,17 @@ interface PaymentFailureProps {
 }
 
 export default function PaymentFailurePage({
-  collectionId,
-  collectionStatus,
   paymentId,
   status,
   externalReference,
-  paymentType,
-  merchantOrderId,
-  preferenceId,
-  siteId,
-  processingMode,
-  merchantAccountId
+  preferenceId
 }: PaymentFailureProps) {
   const router = useRouter();
   const [isRetrying, setIsRetrying] = useState(false);
 
-  useEffect(() => {
-    // Log para debugging
-    // console.log('Payment failure data:', {
-    //   collectionId,
-    //   collectionStatus,
-    //   paymentId,
-    //   status,
-    //   externalReference,
-    //   paymentType,
-    //   merchantOrderId,
-    //   preferenceId,
-    //   siteId,
-    //   processingMode,
-    //   merchantAccountId
-    // });
-  }, []);
-
   const handleRetryPayment = async () => {
     setIsRetrying(true);
     try {
-      // Redirigir de vuelta a la página de Zero 2 Trader
       router.push('/entrenamientos/zero2trader');
     } catch (error) {
       console.error('Error al reintentar pago:', error);
@@ -65,11 +48,17 @@ export default function PaymentFailurePage({
     }
   };
 
+  const hasUsefulDetails =
+    (externalReference && formatValue(externalReference) !== '—') ||
+    (preferenceId && formatValue(preferenceId) !== '—') ||
+    (paymentId && formatValue(paymentId) !== '—') ||
+    (status && formatValue(status) !== '—');
+
   return (
     <>
       <Head>
         <title>Pago No Completado - Zero 2 Trader | Lozano Nahuel</title>
-        <meta name="description" content="Tu pago no pudo ser procesado. Intenta nuevamente para acceder al entrenamiento de Zero 2 Trader." />
+        <meta name="description" content="Tu pago no pudo ser procesado. No se ha cobrado nada. Intenta nuevamente para acceder al entrenamiento de Zero 2 Trader." />
       </Head>
 
       <div className={styles.container}>
@@ -81,18 +70,34 @@ export default function PaymentFailurePage({
           <h1 className={styles.title}>Pago No Completado</h1>
           
           <p className={styles.description}>
-            Tu pago para el entrenamiento de Zero 2 Trader no pudo ser procesado correctamente.
+            Tu pago para el entrenamiento de <strong>Zero 2 Trader</strong> no pudo ser procesado. 
+            No te preocupes: <strong>no se ha cobrado nada</strong> y podés intentar nuevamente cuando quieras.
           </p>
 
-          <div className={styles.details}>
-            <h3>Detalles del pago:</h3>
-            <ul>
-              <li><strong>Referencia:</strong> {externalReference || 'No disponible'}</li>
-              <li><strong>Estado:</strong> {status || 'No disponible'}</li>
-              <li><strong>ID de Pago:</strong> {paymentId || 'No disponible'}</li>
-              <li><strong>ID de Preferencia:</strong> {preferenceId || 'No disponible'}</li>
-            </ul>
+          <div className={styles.securityInfo}>
+            <Shield size={20} />
+            <span>Tu información está protegida y segura</span>
           </div>
+
+          {hasUsefulDetails && (
+            <div className={styles.details}>
+              <h3>Referencia para soporte</h3>
+              <ul>
+                {externalReference && formatValue(externalReference) !== '—' && (
+                  <li><strong>Referencia:</strong> {externalReference}</li>
+                )}
+                {preferenceId && formatValue(preferenceId) !== '—' && (
+                  <li><strong>ID de Preferencia:</strong> {preferenceId}</li>
+                )}
+                {paymentId && formatValue(paymentId) !== '—' && (
+                  <li><strong>ID de Pago:</strong> {paymentId}</li>
+                )}
+                {status && formatValue(status) !== '—' && (
+                  <li><strong>Estado:</strong> {status}</li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <div className={styles.actions}>
             <button 
@@ -122,11 +127,11 @@ export default function PaymentFailurePage({
           <div className={styles.help}>
             <h3>¿Necesitas ayuda?</h3>
             <p>
-              Si continúas teniendo problemas con el pago, puedes contactarnos para obtener asistencia.
+              Si el problema persiste, contactanos y te ayudamos. Incluí la referencia de arriba si la tenés.
             </p>
-            <Link href="/contact" className={styles.contactLink}>
+            <a href="mailto:soporte@lozanonahuel.com?subject=Consulta%20pago%20Zero%202%20Trader" className={styles.contactLink}>
               Contactar Soporte
-            </Link>
+            </a>
           </div>
         </div>
       </div>
