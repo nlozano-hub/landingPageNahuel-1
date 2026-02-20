@@ -109,6 +109,23 @@
   background: rgba(0, 0, 0, 0.1);
 }
 
+.faqAnswer p {
+  margin: 0 0 1rem 0;
+}
+
+.faqAnswer p:last-child {
+  margin-bottom: 0;
+}
+
+.faqAnswer ul {
+  margin: 0.5rem 0 1rem 1.25rem;
+  padding-left: 1rem;
+}
+
+.faqAnswer li {
+  margin-bottom: 0.5rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .faqSection {

@@ -328,17 +328,19 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
   };
 
   // Función para calcular el countdown basado en la próxima clase de entrenamientos mensuales
+  // Considera clases con status 'scheduled' o sin status (clase creada aunque vacía); excluye solo 'cancelled'
   const calculateCountdownFromTrainings = () => {
     if (monthlyTrainings.length === 0) return { days: 0, hours: 0, minutes: 0 };
 
-    // Encontrar la próxima clase de todos los entrenamientos
     let nextClass = null;
     const now = new Date();
 
     for (const training of monthlyTrainings) {
+      if (!training.classes || training.classes.length === 0) continue;
       for (const classItem of training.classes) {
+        if (classItem.status === 'cancelled') continue;
         const classDate = new Date(classItem.date);
-        if (classDate > now && classItem.status === 'scheduled') {
+        if (classDate > now) {
           if (!nextClass || classDate < nextClass.date) {
             nextClass = {
               date: classDate,
@@ -420,38 +422,64 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
         const newCountdown = calculateCountdownFromTrainings();
         setCountdown(newCountdown);
         
-        // Encontrar la próxima clase para mostrar la fecha
+        // Encontrar la próxima clase para mostrar la fecha (incluye clases creadas aunque no tengan status 'scheduled')
         let nextClass = null;
+        let firstClass = null;
         const now = new Date();
 
         for (const training of monthlyTrainings) {
+          if (!training.classes || training.classes.length === 0) continue;
           for (const classItem of training.classes) {
+            if (classItem.status === 'cancelled') continue;
             const classDate = new Date(classItem.date);
-            if (classDate > now && classItem.status === 'scheduled') {
+            if (!firstClass || classDate < firstClass.date) {
+              firstClass = { date: classDate, title: classItem.title, training: training.title };
+            }
+            if (classDate > now) {
               if (!nextClass || classDate < nextClass.date) {
-                nextClass = {
-                  date: classDate,
-                  title: classItem.title,
-                  training: training.title
-                };
+                nextClass = { date: classDate, title: classItem.title, training: training.title };
               }
             }
           }
         }
 
-        if (nextClass) {
-          const formattedDate = nextClass.date.toLocaleDateString('es-ES', {
+        const classToShow = nextClass || firstClass;
+
+        if (classToShow) {
+          const formattedDate = classToShow.date.toLocaleDateString('es-ES', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
             timeZone: siteTimezone
           });
-          const formattedTime = nextClass.date.toLocaleTimeString('es-ES', {
+          const formattedTime = classToShow.date.toLocaleTimeString('es-ES', {
             hour: '2-digit',
             minute: '2-digit',
             timeZone: siteTimezone
           });
           setStartDateText(`${formattedDate} a las ${formattedTime} hs`);
+        } else if (nextTrainingDate) {
+          const newCountdown = calculateCountdown(nextTrainingDate.date, nextTrainingDate.time);
+          setCountdown(newCountdown);
+          const formattedDate = nextTrainingDate.date.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: siteTimezone
+          });
+          setStartDateText(`${formattedDate} a las ${nextTrainingDate.time} hs`);
+        } else if (monthlyTrainings.length > 0) {
+          // Hay entrenamientos creados pero sin clases: usar mes/año del primer entrenamiento futuro
+          const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+          const future = monthlyTrainings
+            .filter((t: any) => t.year > now.getFullYear() || (t.year === now.getFullYear() && t.month >= now.getMonth() + 1))
+            .sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month)[0];
+          if (future) {
+            setStartDateText(`${monthNames[future.month - 1]} ${future.year} - Por confirmar`);
+          } else {
+            const first = monthlyTrainings[0];
+            setStartDateText(`${monthNames[first.month - 1]} ${first.year} - Por confirmar`);
+          }
         } else {
           setStartDateText('Próximamente - Fechas por confirmar');
         }

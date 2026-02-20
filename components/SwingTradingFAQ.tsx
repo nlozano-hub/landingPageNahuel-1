@@ -16,27 +16,27 @@ const SwingTradingFAQ: React.FC = () => {
     {
       id: 1,
       question: "¿A quién está dirigido este entrenamiento?",
-      answer: "Está pensado para personas que ya dominan el análisis técnico y quieren aplicar lo aprendido en el mercado real con una estrategia profesional de Zero 2 Trader. Si operás sin un método claro, te cuesta sostener tus decisiones o sentís que necesitás acompañamiento para operar con criterio, este entrenamiento es para vos. No se enseñan los fundamentos del análisis técnico desde cero, por lo que es recomendable haber hecho un curso de análisis técnico previamente."
+      answer: "Zero2Trader está dirigido a personas que quieren aprender a invertir y operar en el mercado con criterio propio, sin depender de terceros.\n\nEs ideal tanto para quienes empiezan desde cero como para quienes ya operaron pero sienten que les falta método, gestión y control emocional.\n\nSi tu objetivo es construir autonomía real y pensar como un trader profesional, este programa es para vos."
     },
     {
       id: 2,
       question: "¿Qué voy a aprender?",
-      answer: "Vas a aprender una estrategia de Zero 2 Trader enfocada en operar movimientos de varios días o semanas, usando análisis técnico, gestión del riesgo y contexto de mercado. El foco está en ayudarte a identificar oportunidades de calidad, interpretar los gráficos con criterio y ejecutar decisiones con claridad. Todo se enseña de manera aplicada, sin teoría innecesaria y con seguimiento real. No es un curso más: es entrenamiento en acción real."
+      answer: "Vas a recorrer un proceso completo en 3 niveles progresivos:\n\n- En StepOne vas a realizar tu primera inversión real con base técnica y mentalidad correcta.\n- En LevelUp vas a dominar el análisis técnico y aprender a construir tus propios setups.\n- En TraderPro vas a integrar estrategia swing, gestión de riesgo y psicotrading profesional.\n\nEl foco está puesto en priorizar el acompañamiento del alumno para que pueda aprender a pensar, estructurar y ejecutar con precisión en los mercados."
     },
     {
       id: 3,
       question: "¿Cómo es la modalidad?",
-      answer: "El entrenamiento dura 1 mes e incluye 1 clase en vivo por semana (100% online). Si no podés asistir, las clases quedan grabadas. Además, vas a contar con acceso a materiales descargables, herramientas listas para usar y un canal privado de Telegram donde vas a poder hacer consultas, compartir análisis y recibir seguimiento directo. Todo el proceso está pensado para que no te sientas solo y puedas avanzar paso a paso."
+      answer: "El programa se desarrolla en formato intensivo con clases en vivo semanales, todos los sábados.\n\nCada nivel incluye 4 clases teórico-prácticas aplicadas sobre mercado real, ejercicios concretos y entrega de tareas con feedback.\n\nTodas las clases quedan grabadas y se envían para su repaso."
     },
     {
       id: 4,
       question: "¿Qué incluye la inscripción?",
-      answer: "Tu inscripción incluye acceso a todas las clases en vivo, grabaciones posteriores, materiales didácticos y ejecutables, acompañamiento personalizado del mentor, y participación en un grupo exclusivo con otros alumnos. También tendrás asistencia directa entre clases para resolver dudas y seguimiento técnico constante durante todo el entrenamiento. No se trata solo de aprender, sino de integrar los conocimientos operando y recibiendo feedback en tiempo real."
+      answer: "La inscripción incluye:\n\n- Acceso completo a los 3 niveles (StepOne, LevelUp y TraderPro).\n- Acceso gratuito y de por vida a todos los indicadores personalizados utilizados en TradingView.\n- Pack premium de recursos descargables (plan de trading, diario del trader, planillas, checklist y guías técnicas).\n- Comunidad privada de alumnos y una exclusiva por edición con feedback semanal.\n\nEl valor real del ecosistema completo supera los 500 USD, pero Z2T existe para formar traders profesionales. Por eso, bonificamos más del 40% del valor total únicamente a quienes se comprometen con todo el camino de transformación."
     },
     {
       id: 5,
       question: "¿Cuándo empieza y cómo reservo mi lugar?",
-      answer: "El entrenamiento se dicta por ciclos. La próxima edición comenzará próximamente y los cupos son limitados. Podés reservar tu lugar desde el botón \"Empezá Ahora\" y pagando el entrenamiento. Apenas te inscribís, te damos acceso anticipado al canal privado y al material introductorio para que llegues bien preparado a la primera clase. No te quedes afuera si estás buscando operar con claridad y resultados."
+      answer: "Zero2Trader se organiza por ediciones mensuales con cupos limitados para garantizar seguimiento premium y feedback personalizado.\n\nPara reservar tu lugar simplemente debés completar la inscripción seleccionando el mes de inicio. Una vez confirmado el pago, recibís por mail la invitación al google meet de todas las clases, a los indicadores, recursos, comunidad y a toda la estructura del programa.\n\nSi estás listo para comprometerte con el proceso completo, el lugar es tuyo."
     }
   ];
 
@@ -103,7 +103,24 @@ const SwingTradingFAQ: React.FC = () => {
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
                     >
                       <div className={styles.faqAnswer}>
-                        {item.answer}
+                        {item.answer.split('\n\n').map((block, blockIdx) => {
+                          const lines = block.split('\n');
+                          const listItems = lines.filter(l => l.trim().startsWith('- '));
+                          if (listItems.length > 0) {
+                            const intro = lines.filter(l => !l.trim().startsWith('- ')).join('\n');
+                            return (
+                              <div key={blockIdx}>
+                                {intro && <p>{intro.trim()}</p>}
+                                <ul>
+                                  {listItems.map((li, liIdx) => (
+                                    <li key={liIdx}>{li.replace(/^- /, '').trim()}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          }
+                          return <p key={blockIdx}>{block}</p>;
+                        })}
                       </div>
                     </motion.div>
                   )}
