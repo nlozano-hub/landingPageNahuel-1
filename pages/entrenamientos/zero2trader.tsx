@@ -497,13 +497,14 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
             setStartDateText(`${monthNames[first.month - 1]} ${first.year} - Por confirmar`);
           }
         } else {
-          setStartDateText('Próximamente - Fechas por confirmar');
+          setCountdown({ days: 0, hours: 0, minutes: 0 });
+          const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+          const now = new Date();
+          setStartDateText(`${monthNames[now.getMonth()]} ${now.getFullYear()} - Por confirmar`);
         }
       } else if (nextTrainingDate) {
-        // Fallback a fechas de entrenamiento tradicionales
         const newCountdown = calculateCountdown(nextTrainingDate.date, nextTrainingDate.time);
         setCountdown(newCountdown);
-        
         const formattedDate = nextTrainingDate.date.toLocaleDateString('es-ES', {
           day: 'numeric',
           month: 'long',
@@ -511,9 +512,11 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
           timeZone: siteTimezone
         });
         setStartDateText(`${formattedDate} a las ${nextTrainingDate.time} hs`);
-      } else if (!currentNextClass) {
-        // Solo mostrar "Fechas por confirmar" si nunca se encontró una fecha
-        setStartDateText('Próximamente - Fechas por confirmar');
+      } else {
+        setCountdown({ days: 0, hours: 0, minutes: 0 });
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const now = new Date();
+        setStartDateText(`${monthNames[now.getMonth()]} ${now.getFullYear()} - Por confirmar`);
       }
     };
 
@@ -674,58 +677,15 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
         setTrainingDates(dates);
         const nextDate = findNextTrainingDate(dates);
         setNextTrainingDate(nextDate);
-        
-        // Solo actualizar el texto de fecha si no hay entrenamientos mensuales con clases
-        // (los entrenamientos mensuales tienen prioridad)
-        const hasMonthlyTrainingClasses = monthlyTrainings.some(
-          training => training.classes && training.classes.length > 0 && 
-          training.classes.some(c => c.status === 'scheduled')
-        );
-        
-        if (!hasMonthlyTrainingClasses) {
-          if (nextDate) {
-            const dateOptions: Intl.DateTimeFormatOptions = { 
-              day: 'numeric', 
-              month: 'long',
-              year: 'numeric',
-              timeZone: siteTimezone
-            };
-            const formattedDate = nextDate.date.toLocaleDateString('es-ES', dateOptions);
-            setStartDateText(`${formattedDate} a las ${nextDate.time} hs`);
-          } else {
-            setStartDateText('Próximamente - Fechas por confirmar');
-          }
-        }
+        // El texto de fecha lo maneja el efecto de countdown (fuente única de verdad)
       } else {
-        // console.log('📭 No hay fechas específicas configuradas');
         setTrainingDates([]);
         setNextTrainingDate(null);
-        
-        // Solo actualizar si no hay entrenamientos mensuales con clases
-        const hasMonthlyTrainingClasses = monthlyTrainings.some(
-          training => training.classes && training.classes.length > 0 && 
-          training.classes.some(c => c.status === 'scheduled')
-        );
-        
-        if (!hasMonthlyTrainingClasses) {
-          setStartDateText('Próximamente - Fechas por confirmar');
-        }
       }
-      
     } catch (error) {
       console.error('❌ Error cargando fechas:', error);
       setTrainingDates([]);
       setNextTrainingDate(null);
-      
-      // Solo actualizar si no hay entrenamientos mensuales con clases
-      const hasMonthlyTrainingClasses = monthlyTrainings.some(
-        training => training.classes && training.classes.length > 0 && 
-        training.classes.some(c => c.status === 'scheduled')
-      );
-      
-      if (!hasMonthlyTrainingClasses) {
-        setStartDateText('Próximamente - Fechas por confirmar');
-      }
     }
   };
 

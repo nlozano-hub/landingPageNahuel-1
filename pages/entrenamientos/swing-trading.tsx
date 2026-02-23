@@ -481,10 +481,11 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
             setStartDateText(`${monthNames[first.month - 1]} ${first.year} - Por confirmar`);
           }
         } else {
-          setStartDateText('Próximamente - Fechas por confirmar');
+          const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+          const now = new Date();
+          setStartDateText(`${monthNames[now.getMonth()]} ${now.getFullYear()} - Por confirmar`);
         }
       } else if (nextTrainingDate) {
-        // Fallback a fechas de entrenamiento tradicionales
         const newCountdown = calculateCountdown(nextTrainingDate.date, nextTrainingDate.time);
         setCountdown(newCountdown);
         
@@ -496,12 +497,10 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
         });
         setStartDateText(`${formattedDate} a las ${nextTrainingDate.time} hs`);
       } else {
-        // Fallback final
-        const defaultDate = new Date('2024-10-11T13:00:00.000Z');
-        const defaultTime = '13:00';
-        const newCountdown = calculateCountdown(defaultDate, defaultTime);
-        setCountdown(newCountdown);
-        setStartDateText('Próximamente - Fechas por confirmar');
+        setCountdown({ days: 0, hours: 0, minutes: 0 });
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const now = new Date();
+        setStartDateText(`${monthNames[now.getMonth()]} ${now.getFullYear()} - Por confirmar`);
       }
     };
 
@@ -662,32 +661,15 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
         setTrainingDates(dates);
         const nextDate = findNextTrainingDate(dates);
         setNextTrainingDate(nextDate);
-        
-        // Actualizar el countdown y texto de fecha
-          if (nextDate) {
-            const dateOptions: Intl.DateTimeFormatOptions = { 
-              day: 'numeric', 
-              month: 'long',
-              year: 'numeric',
-              timeZone: siteTimezone
-            };
-            const formattedDate = nextDate.date.toLocaleDateString('es-ES', dateOptions);
-            setStartDateText(`${formattedDate} a las ${nextDate.time} hs`);
-        } else {
-          setStartDateText('Próximamente - Fechas por confirmar');
-        }
+        // El texto de fecha lo maneja el efecto de countdown (fuente única de verdad)
       } else {
-        // console.log('📭 No hay fechas específicas configuradas');
         setTrainingDates([]);
         setNextTrainingDate(null);
-        setStartDateText('Próximamente - Fechas por confirmar');
       }
-      
     } catch (error) {
       console.error('❌ Error cargando fechas:', error);
       setTrainingDates([]);
       setNextTrainingDate(null);
-      setStartDateText('Próximamente - Fechas por confirmar');
     }
   };
 
