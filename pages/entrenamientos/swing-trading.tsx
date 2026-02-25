@@ -1006,7 +1006,7 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
               <ul className={styles.infoCardList}>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>📚</span>
-                  <span className={styles.infoCardText}>Para quienes ya saben análisis técnico</span>
+                  <span className={styles.infoCardText}>Para quienes quieren empezar a invertir</span>
                 </li>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>✅</span>
@@ -1041,7 +1041,7 @@ const SwingTradingPage: React.FC<TradingPageProps> = ({
               <ul className={styles.infoCardList}>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>⏰</span>
-                  <span className={styles.infoCardText}>1 mes de entrenamiento intensivo</span>
+                  <span className={styles.infoCardText}>3 meses de entrenamiento intensivo</span>
                 </li>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>💻</span>

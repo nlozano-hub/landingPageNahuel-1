@@ -681,7 +681,7 @@ const DayTradingPage: React.FC<DayTradingPageProps> = ({
               <ul className={styles.infoCardList}>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>📚</span>
-                  <span className={styles.infoCardText}>Para quienes ya saben análisis técnico</span>
+                  <span className={styles.infoCardText}>Para quienes quieren empezar a invertir</span>
                 </li>
                 <li className={styles.infoCardItem}>
                   <span className={styles.infoCardIcon}>✅</span>
