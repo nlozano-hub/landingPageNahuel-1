@@ -586,9 +586,11 @@ export default function Home({ session: serverSession, siteConfig, entrenamiento
   const traderCallPriceStr = resolvedPricing?.alertas?.traderCall?.monthly
     ? `${uiFormatPrice(resolvedPricing.alertas.traderCall.monthly, resolvedPricing.currency)} /mes`
     : '$15.000 ARS /mes';
-  const swingPriceStr = resolvedPricing?.entrenamientos?.swingTrading?.price
-    ? `${uiFormatPrice(resolvedPricing.entrenamientos.swingTrading.price, resolvedPricing.currency)}`
-    : '$279.000 ARS';
+  // Precio Zero 2 Trader: validar que sea razonable (evitar valores erróneos como 102)
+  const swingPriceRaw = resolvedPricing?.entrenamientos?.swingTrading?.price;
+  const swingPriceStr = (typeof swingPriceRaw === 'number' && swingPriceRaw >= 10000)
+    ? `${uiFormatPrice(swingPriceRaw, resolvedPricing?.currency || 'ARS')}`
+    : '$449.000 ARS';
   const consultorioPriceStr = resolvedPricing?.asesorias?.consultorioFinanciero?.price
     ? `${uiFormatPrice(resolvedPricing.asesorias.consultorioFinanciero.price, resolvedPricing.currency)} /sesión`
     : '$30.000 ARS /sesión';
