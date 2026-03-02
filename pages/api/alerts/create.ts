@@ -367,39 +367,41 @@ export default async function handler(
         // Determinar el pool según el tipo de alerta
         const pool = tipo === 'SmartMoney' ? 'SmartMoney' : 'TraderCall';
         
-        // ✅ NUEVO: Calcular liquidez disponible del pool completo antes de asignar
-        const allLiquidityDocs = await Liquidity.find({ pool }).lean();
+        // ✅ CORREGIDO: Usar la misma lógica que /api/liquidity/summary
+        // Disponible = Inicial - Distribuida + Ganancias Realizadas (un solo documento principal)
+        const allLiquidityDocs = await Liquidity.find({ pool })
+          .select({ initialLiquidity: 1, distributions: 1, updatedAt: 1, createdAt: 1 })
+          .lean();
         
-        // Calcular liquidez disponible similar al summary
-        let liquidezInicialGlobal = 0;
-        let liquidezTotalSum = 0;
-        let liquidezDistribuidaSum = 0;
-        let gananciaTotalSum = 0;
-        
-        // Obtener liquidez inicial global (del documento más reciente)
-        const docsWithInitialLiquidity = allLiquidityDocs.filter((doc: any) => 
-          doc.initialLiquidity !== undefined && doc.initialLiquidity !== null && doc.initialLiquidity > 0
+        const docsWithDistributions = allLiquidityDocs.filter((doc: any) => 
+          doc.distributions && doc.distributions.length > 0
         );
+        const mainDoc = docsWithDistributions.length > 0 
+          ? docsWithDistributions.sort((a: any, b: any) => 
+              new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+            )[0]
+          : allLiquidityDocs[0];
         
-        if (docsWithInitialLiquidity.length > 0) {
-          const sortedByUpdate = [...docsWithInitialLiquidity].sort((a: any, b: any) => 
-            new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
-          );
-          liquidezInicialGlobal = sortedByUpdate[0].initialLiquidity;
-        } else if (allLiquidityDocs.length > 0) {
-          const firstDoc = allLiquidityDocs[0];
-          liquidezInicialGlobal = firstDoc.totalLiquidity - (firstDoc.totalProfitLoss || 0);
+        let liquidezDisponible = 0;
+        if (mainDoc) {
+          const liquidezInicialGlobal = mainDoc.initialLiquidity || 0;
+          const allDocDistributions = mainDoc.distributions || [];
+          
+          let montosDistribuidos = 0;
+          allDocDistributions.forEach((d: any) => {
+            if (d.isActive && d.shares > 0) {
+              montosDistribuidos += d.allocatedAmount || 0;
+            }
+          });
+          
+          let gananciasRealizadas = 0;
+          allDocDistributions.forEach((d: any) => {
+            gananciasRealizadas += d.realizedProfitLoss || 0;
+          });
+          
+          liquidezDisponible = liquidezInicialGlobal - montosDistribuidos + gananciasRealizadas;
+          console.log(`📊 [CREATE ALERT] Liquidez disponible (misma fórmula que summary): $${liquidezDisponible.toFixed(2)}`);
         }
-        
-        // Sumar distribuciones y ganancias de todos los documentos
-        allLiquidityDocs.forEach((doc: any) => {
-          liquidezDistribuidaSum += doc.distributedLiquidity || 0;
-          gananciaTotalSum += doc.totalProfitLoss || 0;
-        });
-        
-        // Calcular liquidez total y disponible
-        liquidezTotalSum = liquidezInicialGlobal + gananciaTotalSum;
-        const liquidezDisponible = liquidezTotalSum - liquidezDistribuidaSum;
         
         // ✅ NUEVO: Validar que haya suficiente liquidez disponible
         if (liquidityAmount > liquidezDisponible) {
