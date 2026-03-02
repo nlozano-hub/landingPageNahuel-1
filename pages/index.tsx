@@ -605,7 +605,7 @@ export default function Home({ session: serverSession, siteConfig, entrenamiento
       tagClass: 'tagAlertas',
       rating: '4,7',
       precio: traderCallPriceStr,
-      href: '/alertas/trader-call',
+      href: '/alertas/trader-call', 
       external: false,
       separator: false,
       rocketIcon: false
