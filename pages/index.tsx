@@ -596,7 +596,20 @@ export default function Home({ session: serverSession, siteConfig, entrenamiento
     : '$30.000 ARS /sesión';
 
   // Datos de elementos destacados unificados (sin Pack AT ni Medias Móviles)
-  const destacadosItems = [
+  const destacadosItems: Array<{
+    id: string;
+    titulo: string;
+    descripcion: string;
+    tag: string;
+    tagClass: string;
+    rating: string;
+    precio: string;
+    href: string;
+    external: boolean;
+    separator: boolean;
+    rocketIcon: boolean;
+    proximamente?: boolean;
+  }> = [
     {
       id: 'trader-call',
       titulo: 'Trader Call',
@@ -634,8 +647,7 @@ export default function Home({ session: serverSession, siteConfig, entrenamiento
       href: '/asesorias/consultorio-financiero',
       external: false,
       separator: true,
-      rocketIcon: false,
-      proximamente: true
+      rocketIcon: false
     },
     {
       id: 'lista-wall-street',
