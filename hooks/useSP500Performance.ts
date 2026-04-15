@@ -265,11 +265,22 @@ export function useSP500Performance(period: string = '1m', serviceType: 'TraderC
       //   period: serviceData.period,
       //   totalAlerts
       // });
+      const nextRelativePerformance = parseFloat(relativePerformanceVsSP500.toFixed(2));
       
-      setServiceData(prev => prev ? {
-        ...prev,
-        relativePerformanceVsSP500: parseFloat(relativePerformanceVsSP500.toFixed(2))
-      } : null);
+      setServiceData(prev => {
+        if (!prev) {
+          return null;
+        }
+
+        if (prev.relativePerformanceVsSP500 === nextRelativePerformance) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          relativePerformanceVsSP500: nextRelativePerformance
+        };
+      });
     }
   }, [sp500Data, serviceData]);
 

@@ -286,7 +286,7 @@ Este proyecto está bajo la licencia MIT.
 2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
 3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abrir Pull Request
+5. Abrir Pull Request 
 
 ## 📞 Soporte
 
