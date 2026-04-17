@@ -52,7 +52,7 @@ const FooterComponent: React.FC = () => {
             <div className={styles.linkCard}>
               <h4 className={styles.cardTitle}>Asesorías</h4>
               <ul className={styles.linkList}>
-                <li><span className={styles.footerComingSoon}>Consultorio Financiero <span className={styles.comingSoonBadge}>Próximamente</span></span></li>
+                <li><Link href="/asesorias/consultorio-financiero" className={styles.footerLink}>Consultorio Financiero</Link></li>
               </ul>
             </div>
 

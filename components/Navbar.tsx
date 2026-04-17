@@ -114,7 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '', noSticky = false }) => 
       label: 'Asesorías',
       href: '/asesorias',
       dropdown: [
-        { label: 'Consultorio Financiero', href: '/asesorias/consultorio-financiero', comingSoon: true },
+        { label: 'Consultorio Financiero', href: '/asesorias/consultorio-financiero' },
       ],
     },
     {

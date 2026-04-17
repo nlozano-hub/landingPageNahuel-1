@@ -8,7 +8,6 @@ import { generateCircularAvatarDataURL } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Carousel from '@/components/Carousel';
-import ComingSoon from '@/components/ComingSoon';
 import { motion } from 'framer-motion';
 import { 
   CheckCircle,
@@ -81,7 +80,6 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
   faqs 
 }) => {
   const { data: session } = useSession();
-  const [isAdmin, setIsAdmin] = useState(false);
   const { createBooking, loading } = useBookings();
   const { pricing, loading: pricingLoading } = usePricing();
   const [proximosTurnos, setProximosTurnos] = useState<TurnoDisponible[]>([]);
@@ -100,18 +98,6 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
     email: '',
     whatsapp: ''
   });
-
-  // Verificar si el usuario es admin
-  useEffect(() => {
-    if (session?.user?.email) {
-      fetch('/api/auth/verify-role')
-        .then(res => res.json())
-        .then(data => setIsAdmin(data.role === 'admin'))
-        .catch(() => setIsAdmin(false));
-    } else {
-      setIsAdmin(false);
-    }
-  }, [session]);
 
   // Cargar fechas específicas de asesoría al montar el componente
   useEffect(() => {
@@ -594,13 +580,6 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
 
       <Navbar />
 
-      <ComingSoon 
-        title="Próximamente"
-        message="Estamos trabajando en esta sección. Muy pronto estará disponible."
-      />
-
-      {/* Contenido oculto temporalmente - descomentar para reactivar */}
-      {false && isAdmin && (
       <main className={styles.main}>
         {/* Hero Section */}
         <section className={styles.heroSection}>
@@ -1140,7 +1119,6 @@ const ConsultorioFinancieroPage: React.FC<ConsultorioPageProps> = ({
         </div>
         )}
       </main>
-      )}
 
       <Footer />
     </>
